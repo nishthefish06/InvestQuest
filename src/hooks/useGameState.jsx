@@ -48,7 +48,9 @@ const API = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; } catch(e) { throw new Error(`Server returned non-JSON: ${text.slice(0, 50)}`); }
     if (!res.ok) throw new Error(data.error || 'Signup failed');
     return data;
   },
@@ -58,16 +60,19 @@ const API = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; } catch(e) { throw new Error(`Server returned non-JSON: ${text.slice(0, 50)}`); }
     if (!res.ok) throw new Error(data.error || 'Login failed');
     return data;
   },
   async save(token, gameState) {
-    await fetch('/api/save', {
+    const res = await fetch('/api/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ gameState }),
     });
+    if (!res.ok) console.error('Save failed', res.status);
   },
 };
 
