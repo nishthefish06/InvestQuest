@@ -94,7 +94,7 @@ export default function Arena() {
 
   const priceHistories = useMemo(() => {
     const map = {};
-    SIM_STOCKS.forEach((s) => { map[s.ticker] = generatePriceHistory(s.price); });
+    SIM_STOCKS.forEach((s) => { map[s.ticker] = generatePriceHistory(s.price, s.changePct); });
     return map;
   }, []);
 

@@ -93,14 +93,22 @@ export const SIM_STOCKS = [
   { ticker: 'FIZZ', name: 'FizzBuzz Cola', logo: '🥤', price: 61.25, change: 0.18, changePct: 0.29 },
 ];
 
-export function generatePriceHistory(basePrice) {
+export function generatePriceHistory(basePrice, changePct = 0) {
   const data = [];
-  let p = basePrice * 0.95;
-  for (let i = 0; i < 30; i++) {
-    p += (Math.random() - 0.48) * (basePrice * 0.02);
-    p = Math.max(p, basePrice * 0.8);
+  const days = 30;
+  // Start price derived from current price and the % change so the chart ends at basePrice
+  const startPrice = basePrice / (1 + changePct / 100);
+  const drift = (basePrice - startPrice) / days; // per-day drift toward current price
+  let p = startPrice;
+  for (let i = 0; i < days; i++) {
+    // Add the drift + small random noise (capped so it doesn't overwhelm the trend)
+    const noise = (Math.random() - 0.5) * (basePrice * 0.005);
+    p += drift + noise;
+    p = Math.max(p, startPrice * 0.9); // floor to prevent crazy dips
     data.push({ day: i, price: p });
   }
+  // Ensure the last point is exactly the current price
+  data[days - 1].price = basePrice;
   return data;
 }
 
