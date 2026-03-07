@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGameState } from '../hooks/useGameState';
 import { BUDGET_SCENARIOS, ALL_BUDGET_CATEGORIES } from '../data/skills';
 import { ArrowLeft, ArrowRight, RotateCcw, AlertCircle } from 'lucide-react';
+import GeminiFeedback from '../components/GeminiFeedback';
 
 export default function BudgetGame() {
   const navigate = useNavigate();
@@ -84,8 +85,8 @@ export default function BudgetGame() {
 
     score = Math.max(10, score);
     const xp = Math.floor(score * 2.5);
-    
-    setResult({ score, xp, feedback });
+
+    setResult({ score, xp, feedback, needsPct: nPct.toFixed(1), wantsPct: wPct.toFixed(1), savesPct: sPct.toFixed(1) });
     addXP(xp);
     if (score >= 70 && budgetScenarioLevel < BUDGET_SCENARIOS.length) {
       updateBudgetScenario(budgetScenarioLevel + 1);
@@ -106,7 +107,7 @@ export default function BudgetGame() {
           <div style={{ fontSize: '3rem', marginBottom: 16 }}>{activeScenario.id === 1 ? '🏖️' : '🚨'}</div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 800, marginBottom: 12 }}>{activeScenario.title}</h1>
           <p style={{ color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>{activeScenario.desc}</p>
-          
+
           <div style={{ background: 'rgba(6,182,212,0.1)', padding: 16, borderRadius: 12, marginBottom: 24 }}>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your Income</p>
             <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2rem', color: 'var(--accent-cyan)' }}>${activeScenario.income.toLocaleString()}</p>
@@ -134,7 +135,7 @@ export default function BudgetGame() {
 
         <div className="card" style={{ padding: 20, marginBottom: 24 }}>
           <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 16 }}>The 50/30/20 Breakdown</h3>
-          
+
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Needs (Goal: 50%)</span>
@@ -173,6 +174,19 @@ export default function BudgetGame() {
           </ul>
         </div>
 
+        <GeminiFeedback
+          gameType="budget_scenario"
+          gameState={{
+            score: result.score,
+            scenarioTitle: activeScenario.title,
+            needsPct: result.needsPct,
+            wantsPct: result.wantsPct,
+            savesPct: result.savesPct,
+            income: activeScenario.income,
+            feedback: result.feedback,
+          }}
+        />
+
         <div style={{ display: 'flex', gap: 12 }}>
           {result.score >= 70 && budgetScenarioLevel <= BUDGET_SCENARIOS.length ? (
             <button className="btn btn-budget btn-block btn-lg" onClick={() => { setPhase('intro'); setAllocations(defaultAllocations); }}>
@@ -200,7 +214,7 @@ export default function BudgetGame() {
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.125rem', color }}>{title}</h3>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Target: ${targetAmt}</span>
         </div>
-        
+
         {/* Render mandatory bills for this group first */}
         {activeScenario.mandatory.map(m => {
           if ((prefix === 'need' && m.id !== 'repair' && !m.isSurprise) || (prefix === 'want' && m.isSurprise)) return null; // Very basic bucketing for demo
@@ -216,7 +230,7 @@ export default function BudgetGame() {
                 <p style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>MANDATORY BILL</p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                 <span style={{ width: 60, textAlign: 'center', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1rem', color }}>${m.amount}</span>
+                <span style={{ width: 60, textAlign: 'center', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1rem', color }}>${m.amount}</span>
               </div>
             </div>
           );
