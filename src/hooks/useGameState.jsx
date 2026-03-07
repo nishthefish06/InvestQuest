@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { SIM_STOCKS } from '../data/skills';
 
 const GameContext = createContext();
 
@@ -18,6 +19,7 @@ const INITIAL_STATE = {
 
   budget: { income: 3500, savings: 1200, debt: 4500, creditScore: 680, month: 1 },
 
+  marketStocks: SIM_STOCKS, // dynamic market data
   stockCash: 100000,
   stockStartingAmount: null, // null = not chosen yet
   holdings: [],
@@ -124,6 +126,35 @@ export function GameProvider({ children }) {
     setToken(null);
     setIsLoggedIn(false);
     setState(INITIAL_STATE);
+  }, []);
+
+  // ── Market Simulation ──────────────────────────────
+  useEffect(() => {
+    // Only tick the market if the user is in the Arena (we'll assume the browser timer covers this)
+    const timer = setInterval(() => {
+      setState((s) => {
+        const newMarket = s.marketStocks.map((stock) => {
+          // Add -0.5% to +0.5% random fluctuation
+          const fluctuation = (Math.random() - 0.5) * 0.01;
+          let newPrice = stock.price * (1 + fluctuation);
+          newPrice = Math.max(0.01, newPrice); // never go below 1 cent
+          
+          const newChange = stock.change + (newPrice - stock.price);
+          const basePrice = stock.price - stock.change; // rough estimate of yesterday's open
+          const newChangePct = ((newChange / basePrice) * 100).toFixed(2);
+
+          return {
+            ...stock,
+            price: newPrice,
+            change: newChange,
+            changePct: parseFloat(newChangePct)
+          };
+        });
+        return { ...s, marketStocks: newMarket };
+      });
+    }, 4000); // Update every 4 seconds
+
+    return () => clearInterval(timer);
   }, []);
 
   // ── Game functions ──────────────────────────────────
@@ -236,11 +267,35 @@ export function GameProvider({ children }) {
     });
   }, []);
 
+  // ── Stock Game Additions ───────────────────────────
+  const skipTime = useCallback(() => {
+    setState((s) => {
+      const newMarket = s.marketStocks.map((stock) => {
+        // Fast forward effect: simulated 1-week volatility (-10% to +10%)
+        const fluctuation = (Math.random() - 0.5) * 0.2;
+        let newPrice = stock.price * (1 + fluctuation);
+        newPrice = Math.max(0.01, newPrice);
+        
+        const newChange = stock.change + (newPrice - stock.price);
+        const basePrice = stock.price - stock.change;
+        const newChangePct = ((newChange / basePrice) * 100).toFixed(2);
+
+        return {
+          ...stock,
+          price: newPrice,
+          change: newChange,
+          changePct: parseFloat(newChangePct)
+        };
+      });
+      return { ...s, marketStocks: newMarket, worldProgress: { ...s.worldProgress, stocks: Math.min(100, s.worldProgress.stocks + 2) } };
+    });
+  }, []);
+
   const value = {
     ...state, isLoggedIn, token,
     login, signup, logout,
     completeOnboarding, addXP, loseHeart, resetHearts, completeLesson,
-    setStartingAmount, executeTrade, updateBudget, setMinesweeperScore, sendMoney,
+    setStartingAmount, executeTrade, updateBudget, setMinesweeperScore, sendMoney, skipTime,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

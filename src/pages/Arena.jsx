@@ -88,18 +88,18 @@ function TradeModal({ stock, onClose, onTrade }) {
 }
 
 export default function Arena() {
-  const { stockCash, stockStartingAmount, holdings, executeTrade, addXP, setStartingAmount } = useGameState();
+  const { stockCash, stockStartingAmount, holdings, executeTrade, addXP, setStartingAmount, marketStocks, skipTime } = useGameState();
   const [selectedStock, setSelectedStock] = useState(null);
   const [tab, setTab] = useState('market'); // market | portfolio | arena
 
   const priceHistories = useMemo(() => {
     const map = {};
-    SIM_STOCKS.forEach((s) => { map[s.ticker] = generatePriceHistory(s.price, s.changePct); });
+    marketStocks.forEach((s) => { map[s.ticker] = generatePriceHistory(s.price, s.changePct); });
     return map;
-  }, []);
+  }, [marketStocks]); // re-calc when prices change
 
   const holdingsValue = holdings.reduce((sum, h) => {
-    const stock = SIM_STOCKS.find((s) => s.ticker === h.ticker);
+    const stock = marketStocks.find((s) => s.ticker === h.ticker);
     return sum + (stock ? stock.price * h.shares : 0);
   }, 0);
   const totalValue = stockCash + holdingsValue;
@@ -153,9 +153,14 @@ export default function Arena() {
 
   return (
     <div className="page-content">
-      <div className="page-header">
-        <h1 className="page-title">Trade 📊</h1>
-        <p className="page-subtitle">Paper trading simulator — learn risk-free!</p>
+      <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h1 className="page-title">Trade 📊</h1>
+          <p className="page-subtitle">Paper trading simulator — learn risk-free!</p>
+        </div>
+        <button className="btn btn-secondary btn-sm" onClick={skipTime} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', padding: '6px 12px' }}>
+          ⏩ Fast Forward 1 Week
+        </button>
       </div>
 
       {/* Balance Card */}
@@ -192,7 +197,7 @@ export default function Arena() {
       {/* Market View */}
       {tab === 'market' && (
         <div>
-          {SIM_STOCKS.map((stock, i) => (
+          {marketStocks.map((stock, i) => (
             <motion.div key={stock.ticker} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
               className="card card-interactive" onClick={() => setSelectedStock(stock)}
               style={{ padding: '14px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -229,7 +234,7 @@ export default function Arena() {
             </div>
           ) : (
             holdings.map((h, i) => {
-              const stock = SIM_STOCKS.find((s) => s.ticker === h.ticker);
+              const stock = marketStocks.find((s) => s.ticker === h.ticker);
               if (!stock) return null;
               const currentVal = stock.price * h.shares;
               const costBasis = h.avgCost * h.shares;
