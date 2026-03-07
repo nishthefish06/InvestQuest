@@ -26,7 +26,7 @@ const INITIAL_STATE = {
   tradeHistory: [],
 
   cryptoHoldings: [],
-  minesweeperBestScore: 0,
+  cryptoCrashBestMultiplier: 0,
 
   buddyTransactions: [],
 
@@ -283,11 +283,18 @@ export function GameProvider({ children }) {
     }));
   }, []);
 
-  const setMinesweeperScore = useCallback((score) => {
+  const setCrashBestMultiplier = useCallback((multiplier) => {
     setState((s) => ({
       ...s,
-      minesweeperBestScore: Math.max(s.minesweeperBestScore, score),
-      worldProgress: { ...s.worldProgress, crypto: Math.min(100, s.worldProgress.crypto + 10) },
+      cryptoCrashBestMultiplier: Math.max(s.cryptoCrashBestMultiplier || 0, multiplier),
+      worldProgress: { ...s.worldProgress, crypto: Math.min(100, s.worldProgress.crypto + 15) },
+    }));
+  }, []);
+
+  const updateVirtualCash = useCallback((amountDelta) => {
+    setState((s) => ({
+      ...s,
+      virtualCash: s.virtualCash + amountDelta,
     }));
   }, []);
 
@@ -331,7 +338,7 @@ export function GameProvider({ children }) {
     ...state, isLoggedIn, token, isInitializing,
     login, signup, logout,
     completeOnboarding, addXP, loseHeart, resetHearts, completeLesson,
-    setStartingAmount, executeTrade, updateBudgetScenario, setMinesweeperScore, sendMoney, skipTime,
+    setStartingAmount, executeTrade, updateBudgetScenario, setCrashBestMultiplier, updateVirtualCash, sendMoney, skipTime,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

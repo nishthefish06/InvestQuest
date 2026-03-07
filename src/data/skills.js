@@ -47,10 +47,10 @@ export const QUESTS = {
     { id: 'c2', title: 'Bitcoin vs Altcoins', desc: 'The crypto landscape', xp: 50, type: 'solo', status: 'available', module: 'basics' },
     { id: 'c3', title: 'Wallets & Keys', desc: 'Not your keys, not your coins', xp: 60, type: 'solo', status: 'available', module: 'basics' },
     { id: 'c4', title: 'Spot the Rug Pull', desc: 'Red flags & scam detection', xp: 100, type: 'solo', status: 'locked', module: 'basics' },
-    { id: 'c5', title: 'Crypto Minesweeper', desc: 'Play Crypto Caverns!', xp: 150, type: 'sim', status: 'locked', module: 'basics' },
+    { id: 'c5', title: 'Crypto Crash', desc: 'To The Moon Simulator!', xp: 150, type: 'sim', status: 'locked', module: 'basics' },
     { id: 'c6', title: 'DeFi Explained', desc: 'Lending, staking & yield', xp: 80, type: 'solo', status: 'locked', module: 'advanced' },
     { id: 'c7', title: 'NFTs & Tokens', desc: 'Beyond currency', xp: 70, type: 'solo', status: 'locked', module: 'advanced' },
-    { id: 'c8', title: 'Cavern Raid', desc: 'Multiplayer minesweeper', xp: 200, type: 'group', status: 'locked', module: 'advanced' },
+    { id: 'c8', title: 'Cavern Raid', desc: 'Multiplayer Crash Game', xp: 200, type: 'group', status: 'locked', module: 'advanced' },
   ],
 };
 

@@ -72,7 +72,7 @@ Instructions:
 
       prompt = `
 You are a hype-centric, positive, but educational 'Crypto Guru' character in an educational app called InvestQuest.
-The user just finished playing a minesweeper-style risk-management game ('Crypto Caverns').
+The user just finished playing a high-risk 'To The Moon' crypto crash game ('Crypto Caverns').
 
 Here is what happened:
 ${outcomeContext}

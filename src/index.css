@@ -234,7 +234,7 @@ img { max-width: 100%; display: block; }
 .badge-red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
 .badge-cyan { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); }
 
-/* ── MINESWEEPER GRID ──────────────────────────────── */
+/* ── CRYPTO CRASH ──────────────────────────────── */
 .mine-grid {
   display: grid;
   gap: 4px;

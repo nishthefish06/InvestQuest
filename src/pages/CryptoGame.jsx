@@ -1,217 +1,204 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useGameState } from '../hooks/useGameState';
-import { CRYPTO_TOKENS } from '../data/skills';
-import { ArrowLeft, RotateCcw, Zap, Skull, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import GeminiFeedback from '../components/GeminiFeedback';
-
-function generateGrid(size, mineCount) {
-  const cells = [];
-  const minePositions = new Set();
-  while (minePositions.size < mineCount) {
-    minePositions.add(Math.floor(Math.random() * size * size));
-  }
-  for (let i = 0; i < size * size; i++) {
-    if (minePositions.has(i)) {
-      const rugs = CRYPTO_TOKENS.filter((t) => t.isRug);
-      const rug = rugs[Math.floor(Math.random() * rugs.length)];
-      cells.push({ id: i, type: 'rug', token: rug, value: -100, revealed: false });
-    } else {
-      const safe = CRYPTO_TOKENS.filter((t) => !t.isRug);
-      const token = safe[Math.floor(Math.random() * safe.length)];
-      const r = Math.random();
-      const value = r < 0.3 ? Math.floor(Math.random() * -30) : r < 0.5 ? 0 : Math.floor(Math.random() * 80) + 5;
-      cells.push({ id: i, type: value > 0 ? 'profit' : value < 0 ? 'loss' : 'neutral', token, value, revealed: false });
-    }
-  }
-  return cells;
-}
+import { ArrowLeft, ArrowUpRight, AlertOctagon, TrendingUp, Trophy } from 'lucide-react';
 
 export default function CryptoGame() {
   const navigate = useNavigate();
-  const { addXP, setMinesweeperScore } = useGameState();
-  const gridSize = 5;
-  const mineCount = 4;
+  const { virtualCash, cryptoCrashBestMultiplier, setCrashBestMultiplier, updateVirtualCash, addXP } = useGameState();
+  
+  const [phase, setPhase] = useState('bet'); // bet | flying | rugged | cashed_out
+  const [betAmount, setBetAmount] = useState(100);
+  const [multiplier, setMultiplier] = useState(1.0);
+  const [rugPoint, setRugPoint] = useState(0);
+  const [chartData, setChartData] = useState([]);
+  
+  const timerRef = useRef(null);
+  const containerRef = useRef(null);
 
-  const [grid, setGrid] = useState(() => generateGrid(gridSize, mineCount));
-  const [gameOver, setGameOver] = useState(false);
-  const [portfolio, setPortfolio] = useState(1000);
-  const [moves, setMoves] = useState(0);
-  const [cashed, setCashed] = useState(false);
+  // Initialize a new round
+  const startRound = () => {
+    if (betAmount > virtualCash || betAmount <= 0) return;
+    updateVirtualCash(-betAmount); // Deduct bet
+    
+    // Generate a random rug point (heavy weight towards early crashes, rare moons)
+    const raw = Math.random();
+    let crashAt;
+    if (raw < 0.5) crashAt = 1.1 + (Math.random() * 0.9); // 50% chance 1.1x - 2.0x
+    else if (raw < 0.8) crashAt = 2.0 + (Math.random() * 3.0); // 30% chance 2.0x - 5.0x
+    else if (raw < 0.95) crashAt = 5.0 + (Math.random() * 10.0); // 15% chance 5.0x - 15.0x
+    else crashAt = 15.0 + (Math.random() * 85.0); // 5% chance MOON (15.0x - 100.0x)
+    
+    setRugPoint(crashAt);
+    setMultiplier(1.0);
+    setChartData([{ time: 0, mult: 1.0 }]);
+    setPhase('flying');
+  };
 
-  const revealedCount = grid.filter((c) => c.revealed).length;
-  const profitFromMoves = grid.filter((c) => c.revealed && c.type !== 'rug').reduce((s, c) => s + c.value, 0);
-  const currentValue = 1000 + (profitFromMoves / 100) * 1000;
-
-  const revealCell = useCallback((id) => {
-    if (gameOver || cashed) return;
-    const cell = grid.find((c) => c.id === id);
-    if (!cell || cell.revealed) return;
-
-    if (cell.type === 'rug') {
-      // Game over — reveal all
-      setGrid((g) => g.map((c) => ({ ...c, revealed: true })));
-      setGameOver(true);
-      setPortfolio(0);
+  // The soaring logic
+  useEffect(() => {
+    if (phase !== 'flying') {
+      if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
 
-    setGrid((g) => g.map((c) => c.id === id ? { ...c, revealed: true } : c));
-    setMoves((m) => m + 1);
-    setPortfolio(currentValue + (cell.value / 100) * 1000);
-  }, [grid, gameOver, cashed, currentValue]);
+    let ticks = 0;
+    let currentMult = 1.0;
+
+    timerRef.current = setInterval(() => {
+      ticks++;
+      // The multiplier grows exponentially faster over time
+      const growthRate = 1.001 + (ticks * 0.0001); 
+      currentMult *= growthRate;
+
+      if (currentMult >= rugPoint) {
+        // Boom. Rug pulled.
+        clearInterval(timerRef.current);
+        setMultiplier(rugPoint); // snap to exact death point
+        setPhase('rugged');
+      } else {
+        setMultiplier(currentMult);
+        setChartData((prev) => {
+          const newData = [...prev, { time: ticks, mult: currentMult }];
+          return newData.length > 50 ? newData.slice(newData.length - 50) : newData; // keep chart array small
+        });
+      }
+    }, 50);
+
+    return () => clearInterval(timerRef.current);
+  }, [phase, rugPoint]);
 
   const cashOut = () => {
-    if (gameOver || cashed) return;
-    setCashed(true);
-    const score = Math.max(0, Math.floor(currentValue - 1000));
-    const earnedXP = Math.floor(score / 10) + moves * 5;
-    addXP(earnedXP);
-    setMinesweeperScore(score);
+    if (phase !== 'flying') return;
+    clearInterval(timerRef.current);
+    setPhase('cashed_out');
+    
+    const profit = Math.floor(betAmount * multiplier);
+    updateVirtualCash(profit); // Award winnings
+    
+    const xpEarned = Math.floor(multiplier * 10);
+    addXP(xpEarned);
+
+    if (multiplier > cryptoCrashBestMultiplier) {
+      setCrashBestMultiplier(multiplier);
+    }
   };
 
-  const reset = () => {
-    setGrid(generateGrid(gridSize, mineCount));
-    setGameOver(false);
-    setCashed(false);
-    setPortfolio(1000);
-    setMoves(0);
-  };
-
-  const displayValue = gameOver ? 0 : currentValue;
-  const pnl = displayValue - 1000;
-  const pnlPct = ((pnl / 1000) * 100).toFixed(1);
+  const currentDisplayVal = Math.floor(betAmount * multiplier);
 
   return (
-    <div className="page-content">
+    <div className="page-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingBottom: 100 }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <button onClick={() => navigate('/world/crypto')} style={{ padding: 4 }}><ArrowLeft size={22} color="var(--text-secondary)" /></button>
-        <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 800 }}>⛏️ Crypto Caverns</h1>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Reveal tiles to mine profits — avoid rug pulls!</p>
+        <div style={{ flex: 1 }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 800 }}>🚀 To The Moon</h1>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Available Cash</p>
+          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--accent-orange)' }}>
+            ${virtualCash.toLocaleString()}
+          </p>
         </div>
       </div>
 
-      {/* Portfolio Card */}
-      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Portfolio Value</p>
-            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '1.5rem' }}>
-              ${displayValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-            </p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{
-              fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem',
-              color: pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)',
-            }}>
-              {pnl >= 0 ? '+' : ''}{pnlPct}%
-            </p>
-            <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>{moves} tiles revealed</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 12 }}>
-        {[
-          { icon: <TrendingUp size={12} />, label: 'Profit', color: 'var(--accent-green)' },
-          { icon: <Minus size={12} />, label: 'Flat', color: 'var(--text-secondary)' },
-          { icon: <TrendingDown size={12} />, label: 'Loss', color: 'var(--accent-red)' },
-          { icon: <Skull size={12} />, label: 'Rug Pull', color: 'var(--accent-red)' },
-        ].map((l, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.625rem', color: l.color }}>{l.icon} {l.label}</div>
-        ))}
-      </div>
-
-      {/* Minesweeper Grid */}
-      <div className="mine-grid" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)`, maxWidth: 350, margin: '0 auto', marginBottom: 20 }}>
-        {grid.map((cell) => (
-          <motion.div
-            key={cell.id}
-            className={`mine-cell ${cell.revealed ? (cell.type === 'rug' ? 'rug' : cell.type) : 'hidden'}`}
-            onClick={() => revealCell(cell.id)}
-            whileTap={!cell.revealed ? { scale: 0.9 } : {}}
-            initial={cell.revealed ? { scale: 0.8, opacity: 0 } : {}}
-            animate={{ scale: 1, opacity: 1 }}
-          >
-            {cell.revealed ? (
-              <>
-                <span style={{ fontSize: '1rem' }}>{cell.type === 'rug' ? '💀' : cell.token.icon}</span>
-                <span style={{ fontSize: '0.5625rem', fontWeight: 700, marginTop: 2 }}>
-                  {cell.type === 'rug' ? 'RUG!' : cell.value > 0 ? `+${cell.value}%` : cell.value < 0 ? `${cell.value}%` : '0%'}
-                </span>
-              </>
-            ) : (
-              <span style={{ fontSize: '0.875rem', color: 'var(--accent-orange)', opacity: 0.5 }}>⛏️</span>
+      {/* Main Game Area */}
+      <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: phase === 'rugged' ? 'linear-gradient(to bottom, #450a0a, var(--bg-card))' : 'var(--bg-card)' }} ref={containerRef}>
+        
+        {/* The Graphic / Chart Area */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+          
+          <AnimatePresence mode="popLayout">
+            {phase === 'bet' && (
+              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '4rem', marginBottom: 16, animation: 'float 3s ease-in-out infinite' }}>🐕</div>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 900, marginBottom: 8 }}>Cash out before the crash!</h2>
+                <p style={{ color: 'var(--text-secondary)' }}>Meme coins are volatile. Don't get greedy.</p>
+              </motion.div>
             )}
-          </motion.div>
-        ))}
+
+            {phase === 'flying' && (
+              <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: 'center', zIndex: 10 }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: '5rem', fontWeight: 900, color: 'var(--accent-green)', textShadow: '0 0 40px rgba(16, 185, 129, 0.4)', lineHeight: 1 }}>
+                  {multiplier.toFixed(2)}x
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-secondary)', marginTop: 8 }}>
+                  Potential: <span style={{ color: 'white' }}>${currentDisplayVal.toLocaleString()}</span>
+                </div>
+              </motion.div>
+            )}
+
+            {phase === 'cashed_out' && (
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ textAlign: 'center', zIndex: 10 }}>
+                <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--gradient-crypto)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 0 30px rgba(245, 158, 11, 0.3)' }}>
+                  <TrendingUp size={40} color="white" />
+                </div>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 900, color: 'var(--accent-green)', marginBottom: 8 }}>
+                  +{multiplier.toFixed(2)}x
+                </h2>
+                <p style={{ fontSize: '1.25rem', color: 'var(--text-secondary)' }}>You secured <span style={{ color: 'white', fontWeight: 700 }}>${currentDisplayVal.toLocaleString()}</span>!</p>
+              </motion.div>
+            )}
+
+            {phase === 'rugged' && (
+              <motion.div initial={{ scale: 2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.6 }} style={{ textAlign: 'center', zIndex: 10 }}>
+                <AlertOctagon size={80} color="var(--accent-red)" style={{ margin: '0 auto 16px' }} />
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '3rem', fontWeight: 900, color: 'var(--accent-red)', marginBottom: 8, letterSpacing: '-0.02em' }}>
+                  RUGGED!
+                </h2>
+                <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)' }}>Crashed at exactly <span style={{ color: 'white', fontWeight: 700 }}>{multiplier.toFixed(2)}x</span></p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: 8 }}>Investment lost.</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+        </div>
+
+        {/* Controls Area */}
+        <div style={{ padding: 20, background: 'rgba(0,0,0,0.2)', borderTop: '1px solid var(--border-glass)' }}>
+          {phase === 'bet' || phase === 'rugged' || phase === 'cashed_out' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 8 }}>Bet Amount ($)</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-secondary" onClick={() => setBetAmount(Math.max(10, betAmount - 50))} style={{ flex: 1 }}>- $50</button>
+                  <input 
+                    type="number" 
+                    value={betAmount} 
+                    onChange={(e) => setBetAmount(Number(e.target.value))}
+                    className="form-input" 
+                    style={{ flex: 2, textAlign: 'center', fontSize: '1.125rem', fontWeight: 700 }}
+                  />
+                  <button className="btn btn-secondary" onClick={() => setBetAmount(betAmount + 50)} style={{ flex: 1 }}>+ $50</button>
+                </div>
+              </div>
+              <button 
+                className="btn btn-crypto btn-lg btn-block" 
+                onClick={startRound}
+                disabled={betAmount > virtualCash || betAmount <= 0}
+                style={{ fontSize: '1.25rem' }}
+              >
+                🚀 Launch {betAmount ? `$${betAmount}` : ''}
+              </button>
+            </div>
+          ) : (
+            <motion.button 
+              whileTap={{ scale: 0.95 }}
+              className="btn btn-lg btn-block" 
+              onClick={cashOut}
+              style={{ background: 'var(--accent-green)', color: 'black', height: 80, fontSize: '2rem', fontFamily: 'var(--font-display)', fontWeight: 900, boxShadow: '0 0 40px rgba(16, 185, 129, 0.4)', borderRadius: 16 }}
+            >
+              CASH OUT
+            </motion.button>
+          )}
+        </div>
       </div>
 
-      {/* Actions */}
-      {!gameOver && !cashed && revealedCount > 0 && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <button className="btn btn-crypto btn-block btn-lg" onClick={cashOut}
-            style={{ marginBottom: 10 }}>
-            💰 Cash Out — Take ${displayValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-          </button>
-          <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Or keep revealing tiles for more profit (but more risk!)
-          </p>
-        </motion.div>
-      )}
-
-      {/* Game Over */}
-      {gameOver && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ textAlign: 'center', padding: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-red)', marginBottom: 8 }}>💀 Rug Pulled!</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>You hit a scam coin! Portfolio wiped out.</p>
-
-          <GeminiFeedback gameType="crypto" gameState={{ pnlPct, pnlAmount: pnl, cashedOut: false, moves }} />
-
-          <button className="btn btn-crypto btn-lg" onClick={reset}>
-            <RotateCcw size={16} /> Try Again
-          </button>
-        </motion.div>
-      )}
-
-      {/* Cashed Out */}
-      {cashed && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ textAlign: 'center', padding: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-green)', marginBottom: 8 }}>💰 Cashed Out!</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>Smart move knowing when to take profits!</p>
-          <div style={{ padding: '10px 20px', background: 'rgba(245,158,11,0.1)', borderRadius: 9999, border: '1px solid rgba(245,158,11,0.2)', display: 'inline-block', marginBottom: 16 }}>
-            <span style={{ fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--accent-orange)' }}>
-              +{Math.floor(Math.max(0, pnl) / 10) + moves * 5} XP
-            </span>
-          </div>
-
-          <GeminiFeedback gameType="crypto" gameState={{ pnlPct, pnlAmount: pnl, cashedOut: true, moves }} />
-
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-            <button className="btn btn-crypto btn-lg" onClick={reset}><RotateCcw size={16} /> Play Again</button>
-            <button className="btn btn-secondary btn-lg" onClick={() => navigate('/world/crypto')}>Back</button>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Tip Card */}
-      {!gameOver && !cashed && revealedCount === 0 && (
-        <div className="card" style={{ padding: 14, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
-          <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--accent-orange)', marginBottom: 4 }}>💡 How to Play</p>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            Tap tiles to reveal crypto price movements. Each tile shows a % gain or loss.
-            <strong> But beware — {mineCount} tiles are rug pulls</strong> that wipe your portfolio!
-            Cash out anytime to keep your gains.
-          </p>
-        </div>
-      )}
+      {/* Stats footer */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+        <Trophy size={14} color="var(--accent-orange)" /> Best Multiplier: <span style={{ color: 'white', fontWeight: 700 }}>{cryptoCrashBestMultiplier > 0 ? `${cryptoCrashBestMultiplier.toFixed(2)}x` : 'None'}</span>
+      </div>
     </div>
   );
 }
