@@ -38,7 +38,7 @@ export default function Onboarding() {
           {step === 0 && (
             <motion.div key="welcome" {...slide} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '4rem', marginBottom: 16, animation: 'float 3s ease-in-out infinite' }}>💰</div>
-              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 900, marginBottom: 8 }}>Finance Quest</h1>
+              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 900, marginBottom: 8 }}>InvestQuest</h1>
               <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.5, marginBottom: 8 }}>
                 Master money through <strong>games</strong>, not textbooks.
               </p>
