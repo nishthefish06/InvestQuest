@@ -37,7 +37,9 @@ export default function Onboarding() {
         <AnimatePresence mode="wait">
           {step === 0 && (
             <motion.div key="welcome" {...slide} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '4rem', marginBottom: 16, animation: 'float 3s ease-in-out infinite' }}>💰</div>
+              <div style={{ marginBottom: 16, animation: 'float 3s ease-in-out infinite' }}>
+                <img src="/logo.png" alt="InvestQuest Logo" style={{ width: 80, height: 80, objectFit: 'contain' }} />
+              </div>
               <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 900, marginBottom: 8 }}>InvestQuest</h1>
               <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.5, marginBottom: 8 }}>
                 Master money through <strong>games</strong>, not textbooks.

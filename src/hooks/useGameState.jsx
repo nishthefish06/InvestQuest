@@ -13,7 +13,6 @@ const INITIAL_STATE = {
   streak: 7,
   hearts: 5,
   lessonsCompleted: 0,
-  virtualCash: 5000,
 
   worldProgress: { budget: 0, stocks: 0, crypto: 0 },
 
@@ -28,7 +27,8 @@ const INITIAL_STATE = {
   cryptoHoldings: [],
   cryptoCrashBestMultiplier: 0,
 
-  buddyTransactions: [],
+  friends: [],
+  friendRequests: [],
 
   achievements: [
     { id: 'first_lesson', name: 'First Lesson', icon: '⭐', color: '#f59e0b', earned: true },
@@ -83,6 +83,24 @@ const API = {
     });
     if (!res.ok) console.error('Save failed', res.status);
   },
+  async searchUser(token, username) {
+    const res = await fetch(`/api/friends/search?q=${encodeURIComponent(username)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Search failed');
+    return data.user;
+  },
+  async handleFriendRequest(token, action, targetUsername) {
+    const res = await fetch('/api/friends/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action, targetUsername }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Friend action failed');
+    return data;
+  }
 };
 
 export function GameProvider({ children }) {
@@ -92,40 +110,55 @@ export function GameProvider({ children }) {
   const [isInitializing, setIsInitializing] = useState(() => !!localStorage.getItem('iq_token'));
   const saveTimer = useRef(null);
 
-  // ── Session Restore ─────────────────────────────────
-  useEffect(() => {
+  // ── Session Restore & Periodic Sync ─────────────────
+  const fetchSessionData = useCallback(async () => {
     const storedToken = localStorage.getItem('iq_token');
-    if (storedToken) {
-      API.me(storedToken)
-        .then((data) => {
-          if (data.gameState) {
-            setState((s) => ({
-              ...INITIAL_STATE,
-              ...data.gameState,
-              achievements: s.achievements,
-              username: data.username || s.username,
-            }));
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          localStorage.removeItem('iq_token');
-          setToken(null);
-          setIsLoggedIn(false);
-          setState(INITIAL_STATE);
-        })
-        .finally(() => setIsInitializing(false));
-    } else {
+    if (!storedToken) {
+      setIsInitializing(false);
+      return;
+    }
+    try {
+      const data = await API.me(storedToken);
+      if (data.gameState) {
+         setState((s) => ({
+           ...INITIAL_STATE,
+           ...data.gameState,
+           achievements: s.achievements,
+           username: data.username || s.username,
+         }));
+      }
+    } catch (err) {
+      console.error(err);
+      localStorage.removeItem('iq_token');
+      setToken(null);
+      setIsLoggedIn(false);
+      setState(INITIAL_STATE);
+    } finally {
       setIsInitializing(false);
     }
   }, []);
+
+  // Initial load
+  useEffect(() => {
+    fetchSessionData();
+  }, [fetchSessionData]);
+
+  // Periodic background sync (e.g. for friend request acceptance)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const interval = setInterval(() => {
+      fetchSessionData();
+    }, 15000); // Check every 15 seconds
+    return () => clearInterval(interval);
+  }, [isLoggedIn, fetchSessionData]);
 
   // ── Auto-save debounced (save 2s after last state change) ─
   useEffect(() => {
     if (!token || !isLoggedIn) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      const { achievements, ...saveable } = state;
+      // achievements, friends, and friendRequests are handled by specific DB requests or atomic ops
+      const { achievements, friends, friendRequests, ...saveable } = state;
       API.save(token, saveable).catch(() => {});
     }, 2000);
     return () => clearTimeout(saveTimer.current);
@@ -291,24 +324,44 @@ export function GameProvider({ children }) {
     }));
   }, []);
 
-  const updateVirtualCash = useCallback((amountDelta) => {
+  // ── Social & Shop Actions ───────────────────────────
+  const searchUser = useCallback(async (username) => {
+    if (!token) throw new Error('Not authenticated');
+    return await API.searchUser(token, username);
+  }, [token]);
+
+  const sendFriendRequest = useCallback(async (targetUsername) => {
+    if (!token) throw new Error('Not authenticated');
+    await API.handleFriendRequest(token, 'send', targetUsername);
+  }, [token]);
+
+  const acceptFriendRequest = useCallback(async (targetUsername) => {
+    if (!token) throw new Error('Not authenticated');
+    const data = await API.handleFriendRequest(token, 'accept', targetUsername);
     setState((s) => ({
       ...s,
-      virtualCash: s.virtualCash + amountDelta,
+      friendRequests: s.friendRequests.filter(req => req !== targetUsername),
+      friends: [...s.friends, data.friend]
     }));
-  }, []);
+  }, [token]);
 
-  const sendMoney = useCallback((buddyId, amount) => {
-    setState((s) => {
-      if (amount > s.virtualCash || amount <= 0) return s;
-      return {
-        ...s,
-        virtualCash: s.virtualCash - amount,
-        buddyTransactions: [...s.buddyTransactions, { to: buddyId, amount, time: Date.now() }],
-        achievements: s.achievements.map((a) => a.id === 'generous' ? { ...a, earned: true } : a),
-      };
-    });
-  }, []);
+  const rejectFriendRequest = useCallback(async (targetUsername) => {
+    if (!token) throw new Error('Not authenticated');
+    await API.handleFriendRequest(token, 'reject', targetUsername);
+    setState((s) => ({
+      ...s,
+      friendRequests: s.friendRequests.filter(req => req !== targetUsername)
+    }));
+  }, [token]);
+
+  const removeFriend = useCallback(async (targetUsername) => {
+    if (!token) throw new Error('Not authenticated');
+    await API.handleFriendRequest(token, 'remove', targetUsername);
+    setState((s) => ({
+      ...s,
+      friends: s.friends.filter(f => f.username !== targetUsername)
+    }));
+  }, [token]);
 
   // ── Stock Game Additions ───────────────────────────
   const skipTime = useCallback(() => {
@@ -338,7 +391,8 @@ export function GameProvider({ children }) {
     ...state, isLoggedIn, token, isInitializing,
     login, signup, logout,
     completeOnboarding, addXP, loseHeart, resetHearts, completeLesson,
-    setStartingAmount, executeTrade, updateBudgetScenario, setCrashBestMultiplier, updateVirtualCash, sendMoney, skipTime,
+    setStartingAmount, executeTrade, updateBudgetScenario, setCrashBestMultiplier, skipTime,
+    searchUser, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

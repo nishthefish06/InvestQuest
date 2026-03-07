@@ -14,10 +14,15 @@ export default async function handler(req, res) {
     const { gameState } = req.body;
     if (!gameState) return res.status(400).json({ error: 'No game state provided' });
 
+    const updateFields = { updatedAt: new Date() };
+    for (const [key, value] of Object.entries(gameState)) {
+      updateFields[`gameState.${key}`] = value;
+    }
+
     const db = await getDb();
     await db.collection('users').updateOne(
       { username: decoded.username },
-      { $set: { gameState, updatedAt: new Date() } }
+      { $set: updateFields }
     );
 
     res.status(200).json({ ok: true });

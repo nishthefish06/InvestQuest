@@ -8,24 +8,48 @@ import { WORLDS } from '../data/skills';
 import { Settings, ChevronRight, Send, DollarSign, LogOut } from 'lucide-react';
 
 export default function Profile() {
-  const { username, xp, level, xpToNext, streak, lessonsCompleted, achievements, holdings, stockCash, virtualCash, worldProgress, buddyTransactions, sendMoney, logout } = useGameState();
+  const { username, xp, level, xpToNext, streak, lessonsCompleted, achievements, holdings, stockCash, worldProgress, friends, friendRequests, searchUser, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend, logout } = useGameState();
   const navigate = useNavigate();
   const progress = (xp / xpToNext) * 100;
-  const [sendingTo, setSendingTo] = useState(null);
-  const [sendAmount, setSendAmount] = useState('');
+  
+  const [showAddFriend, setShowAddFriend] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResult, setSearchResult] = useState(null);
+  const [searchStatus, setSearchStatus] = useState(''); // 'loading', 'found', 'error', 'sent'
+  const [searchError, setSearchError] = useState('');
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearchStatus('loading');
+    setSearchError('');
+    setSearchResult(null);
+    try {
+      const user = await searchUser(searchQuery.trim());
+      setSearchResult(user);
+      setSearchStatus('found');
+    } catch (error) {
+      setSearchStatus('error');
+      setSearchError(error.message);
+    }
+  };
+
+  const handleSendRequest = async () => {
+    if (!searchResult) return;
+    setSearchStatus('loading');
+    try {
+      await sendFriendRequest(searchResult.username);
+      setSearchStatus('sent');
+    } catch (error) {
+      setSearchStatus('error');
+      setSearchError(error.message);
+    }
+  };
 
   const holdingsValue = holdings.reduce((sum, h) => {
     const stock = SIM_STOCKS.find((s) => s.ticker === h.ticker);
     return sum + (stock ? stock.price * h.shares : 0);
   }, 0);
-
-  const handleSend = () => {
-    const amt = parseInt(sendAmount);
-    if (!amt || amt <= 0 || amt > virtualCash) return;
-    sendMoney(sendingTo.id, amt);
-    setSendingTo(null);
-    setSendAmount('');
-  };
 
   const calDays = Array.from({ length: 28 }).map((_, i) => ({ day: i + 1, active: i >= 28 - streak, today: i === 27 }));
 
@@ -33,7 +57,9 @@ export default function Profile() {
     <div className="page-content">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: 'center', padding: '16px 0 20px' }}>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--gradient-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', margin: '0 auto 10px', border: '3px solid var(--accent-purple)', boxShadow: 'var(--shadow-glow-purple)' }}>💰</div>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px', border: '3px solid var(--accent-purple)', boxShadow: 'var(--shadow-glow-purple)', overflow: 'hidden' }}>
+          <img src="/logo.png" alt="User Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
         <h1 style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'var(--font-display)' }}>{username}</h1>
         <p style={{ fontSize: '0.8125rem', color: 'var(--accent-purple)', fontWeight: 500 }}>Level {level}</p>
         <div style={{ marginTop: 10, maxWidth: 180, margin: '10px auto 0' }}>
@@ -47,7 +73,7 @@ export default function Profile() {
         {[
           { val: lessonsCompleted, label: 'Lessons', color: 'var(--accent-purple)' },
           { val: `${streak}🔥`, label: 'Streak', color: 'var(--accent-orange)' },
-          { val: `$${virtualCash.toLocaleString()}`, label: 'V-Cash', color: 'var(--accent-green)' },
+          { val: `${friends.length}`, label: 'Friends', color: 'var(--accent-green)' },
         ].map((s, i) => (
           <div key={i} className="card" style={{ padding: '10px 6px', textAlign: 'center' }}>
             <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1rem', color: s.color }}>{s.val}</p>
@@ -85,56 +111,103 @@ export default function Profile() {
         ))}
       </div>
 
-      {/* Buddies */}
-      <div className="section-header"><h2 className="section-title">🤝 Buddies</h2></div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
-        {BUDDY_LIST.map((buddy) => (
-          <div key={buddy.id} className="card card-interactive" style={{ padding: '12px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ position: 'relative' }}>
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--bg-card-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.125rem' }}>{buddy.avatar}</div>
-                <div style={{ position: 'absolute', bottom: -1, right: -1, width: 10, height: 10, borderRadius: '50%', background: buddy.online ? 'var(--accent-green)' : 'var(--text-muted)', border: '2px solid var(--bg-primary)' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{buddy.name}</p>
-                <p style={{ fontSize: '0.625rem', color: 'var(--text-secondary)' }}>Lvl {buddy.level} · {buddy.streak}🔥 · {buddy.xp.toLocaleString()} XP</p>
-              </div>
-              <button onClick={() => setSendingTo(buddy)}
-                style={{ padding: '6px 12px', borderRadius: 9999, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <DollarSign size={12} /> Send
-              </button>
-            </div>
-          </div>
-        ))}
+      {/* Friends System */}
+      <div className="section-header">
+        <h2 className="section-title">🤝 Friends</h2>
+        <button className="section-link" onClick={() => setShowAddFriend(true)}>+ Add Friend</button>
       </div>
 
-      {/* Send Money Modal */}
-      {sendingTo && (
+      {friendRequests?.length > 0 && (
+        <div style={{ marginBottom: 18, padding: 12, background: 'rgba(245,158,11,0.1)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(245,158,11,0.2)' }}>
+          <h3 style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--accent-orange)', marginBottom: 8 }}>Pending Requests ({friendRequests.length})</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {friendRequests.map((req) => (
+              <div key={req} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-card)', padding: '8px 12px', borderRadius: 'var(--radius-md)' }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{req}</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => acceptFriendRequest(req)} style={{ padding: '4px 10px', borderRadius: 9999, background: 'var(--accent-green)', color: '#000', fontSize: '0.6875rem', fontWeight: 700 }}>Accept</button>
+                  <button onClick={() => rejectFriendRequest(req)} style={{ padding: '4px 10px', borderRadius: 9999, background: 'rgba(239,68,68,0.15)', color: 'var(--accent-red)', fontSize: '0.6875rem', fontWeight: 600 }}>Decline</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+        {friends?.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '20px 10px', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--border-subtle)' }}>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>You don't have any friends yet.<br/>Click "Add Friend" to search for someone!</p>
+          </div>
+        ) : (
+          friends?.map((buddy) => (
+            <div key={buddy.username} className="card card-interactive" style={{ padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--gradient-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.125rem' }}>👾</div>
+                  <div style={{ position: 'absolute', bottom: -1, right: -1, width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-green)', border: '2px solid var(--bg-primary)' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{buddy.username}</p>
+                  <p style={{ fontSize: '0.625rem', color: 'var(--text-secondary)' }}>Lvl {buddy.level || 1} · {buddy.streak || 0}🔥 · {(buddy.xp || 0).toLocaleString()} XP</p>
+                </div>
+                <button onClick={() => removeFriend(buddy.username)}
+                  style={{ padding: '6px', borderRadius: 9999, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', border: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}>
+                  <LogOut size={14} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Add Friend Modal */}
+      {showAddFriend && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
-          onClick={() => setSendingTo(null)}>
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          onClick={() => { setShowAddFriend(false); setSearchStatus(''); setSearchResult(null); setSearchQuery(''); }}>
           <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }}
             onClick={(e) => e.stopPropagation()}
-            style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-xl)', padding: 24, width: '100%', maxWidth: 320, border: '1px solid var(--border-glass)' }}>
-            <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <span style={{ fontSize: '2rem' }}>{sendingTo.avatar}</span>
-              <h3 style={{ fontWeight: 700, marginTop: 8 }}>Send to {sendingTo.name}</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Your balance: ${virtualCash.toLocaleString()}</p>
+            style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-xl)', padding: 24, width: '100%', maxWidth: 360, border: '1px solid var(--border-glass)' }}>
+            
+            <h3 style={{ fontWeight: 800, fontSize: '1.25rem', fontFamily: 'var(--font-display)', marginBottom: 16 }}>Find a Friend</h3>
+            
+            <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <input className="input-field" type="text" placeholder="Enter exactly: username"
+                value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ flex: 1 }} />
+              <button type="submit" className="btn btn-primary" disabled={searchStatus === 'loading'}>
+                {searchStatus === 'loading' && !searchResult ? '...' : 'Search'}
+              </button>
+            </form>
+
+            <div style={{ minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--border-subtle)', padding: 16 }}>
+              {searchStatus === '' && (
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Search requires exact username match.</p>
+              )}
+              {searchStatus === 'error' && (
+                <p style={{ fontSize: '0.8125rem', color: 'var(--accent-red)', fontWeight: 600 }}>{searchError}</p>
+              )}
+              {searchStatus === 'sent' && (
+                <p style={{ fontSize: '0.8125rem', color: 'var(--accent-green)', fontWeight: 600 }}>Friend request sent!</p>
+              )}
+              {searchStatus === 'found' && searchResult && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--gradient-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>👾</div>
+                    <div>
+                      <p style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{searchResult.username}</p>
+                      <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>Lvl {searchResult.level} · {searchResult.xp} XP</p>
+                    </div>
+                  </div>
+                  <button onClick={handleSendRequest} className="btn btn-primary" style={{ padding: '6px 14px', fontSize: '0.75rem' }}>
+                    Send Request
+                  </button>
+                </div>
+              )}
             </div>
-            <input className="input-field" type="number" placeholder="Amount ($)"
-              value={sendAmount} onChange={(e) => setSendAmount(e.target.value)}
-              style={{ textAlign: 'center', fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: 12 }} />
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              {[50, 100, 500].map((a) => (
-                <button key={a} onClick={() => setSendAmount(String(a))}
-                  style={{ flex: 1, padding: '8px 4px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-card)', border: '1px solid var(--border-glass)', fontSize: '0.8125rem', fontWeight: 600 }}>
-                  ${a}
-                </button>
-              ))}
-            </div>
-            <button className="btn btn-primary btn-block" onClick={handleSend}>
-              <Send size={16} /> Send Cash
-            </button>
+            
+            <button onClick={() => setShowAddFriend(false)} style={{ width: '100%', marginTop: 16, padding: 10, fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Close</button>
           </motion.div>
         </motion.div>
       )}

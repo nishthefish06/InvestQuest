@@ -120,7 +120,9 @@ export default function Arena() {
     return (
       <div className="page-content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '80vh' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: '3rem', marginBottom: 12, animation: 'float 3s ease-in-out infinite' }}>💰</div>
+          <div style={{ marginBottom: 12, animation: 'float 3s ease-in-out infinite' }}>
+            <img src="/logo.png" alt="Arena Logo" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+          </div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 900, marginBottom: 4 }}>Choose Your Capital</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>How much virtual cash to start trading?</p>
         </div>

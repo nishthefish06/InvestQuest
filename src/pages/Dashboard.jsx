@@ -6,7 +6,7 @@ import { LEADERBOARD } from '../data/community';
 import { Flame, TrendingUp, Users, Zap, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 export default function Dashboard() {
-  const { username, xp, level, xpToNext, streak, lessonsCompleted, worldProgress, virtualCash, marketStocks } = useGameState();
+  const { username, xp, level, xpToNext, streak, lessonsCompleted, worldProgress, marketStocks, friends } = useGameState();
   const navigate = useNavigate();
   const progress = (xp / xpToNext) * 100;
 
@@ -23,7 +23,10 @@ export default function Dashboard() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Welcome back</p>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900 }}>{username} 💰</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 8 }}>
+            {username} 
+            <img src="/logo.png" alt="Logo" style={{ height: '1.5rem', width: '1.5rem', objectFit: 'contain' }} />
+          </h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'rgba(245,158,11,0.1)', borderRadius: 9999, border: '1px solid rgba(245,158,11,0.2)' }}>
           <Flame size={16} color="var(--accent-orange)" />
@@ -53,8 +56,8 @@ export default function Dashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
         {[
           { icon: <Zap size={16} />, val: lessonsCompleted, label: 'Lessons', color: 'var(--accent-purple)' },
-          { icon: <TrendingUp size={16} />, val: `$${(virtualCash).toLocaleString()}`, label: 'V-Cash', color: 'var(--accent-green)' },
-          { icon: <Users size={16} />, val: '4', label: 'Buddies', color: 'var(--accent-cyan)' },
+          { icon: <TrendingUp size={16} />, val: `${worldProgress.budget + worldProgress.stocks + worldProgress.crypto}%`, label: 'Completion', color: 'var(--accent-green)' },
+          { icon: <Users size={16} />, val: friends?.length || 0, label: 'Friends', color: 'var(--accent-cyan)' },
         ].map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}
             className="card" style={{ padding: '12px 8px', textAlign: 'center' }}>
