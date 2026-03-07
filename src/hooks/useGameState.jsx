@@ -68,6 +68,13 @@ const API = {
     if (!res.ok) throw new Error(data.error || 'Login failed');
     return data;
   },
+  async me(token) {
+    const res = await fetch('/api/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Session invalid');
+    return res.json();
+  },
   async save(token, gameState) {
     const res = await fetch('/api/save', {
       method: 'POST',
@@ -82,9 +89,38 @@ export function GameProvider({ children }) {
   const [state, setState] = useState(INITIAL_STATE);
   const [token, setToken] = useState(() => localStorage.getItem('iq_token'));
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('iq_token'));
+  const [isInitializing, setIsInitializing] = useState(() => !!localStorage.getItem('iq_token'));
   const saveTimer = useRef(null);
 
-  // Auto-save debounced (save 2s after last state change)
+  // ── Session Restore ─────────────────────────────────
+  useEffect(() => {
+    const storedToken = localStorage.getItem('iq_token');
+    if (storedToken) {
+      API.me(storedToken)
+        .then((data) => {
+          if (data.gameState) {
+            setState((s) => ({
+              ...INITIAL_STATE,
+              ...data.gameState,
+              achievements: s.achievements,
+              username: data.username || s.username,
+            }));
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          localStorage.removeItem('iq_token');
+          setToken(null);
+          setIsLoggedIn(false);
+          setState(INITIAL_STATE);
+        })
+        .finally(() => setIsInitializing(false));
+    } else {
+      setIsInitializing(false);
+    }
+  }, []);
+
+  // ── Auto-save debounced (save 2s after last state change) ─
   useEffect(() => {
     if (!token || !isLoggedIn) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -292,7 +328,7 @@ export function GameProvider({ children }) {
   }, []);
 
   const value = {
-    ...state, isLoggedIn, token,
+    ...state, isLoggedIn, token, isInitializing,
     login, signup, logout,
     completeOnboarding, addXP, loseHeart, resetHearts, completeLesson,
     setStartingAmount, executeTrade, updateBudget, setMinesweeperScore, sendMoney, skipTime,

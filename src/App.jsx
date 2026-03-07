@@ -14,8 +14,17 @@ import Community from './pages/Community';
 import Profile from './pages/Profile';
 
 function AppContent() {
-  const { isLoggedIn, onboarded } = useGameState();
+  const { isLoggedIn, onboarded, isInitializing } = useGameState();
   const location = useLocation();
+
+  if (isInitializing) {
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-primary)' }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '4px solid var(--bg-card-hover)', borderTopColor: 'var(--accent-purple)', animation: 'spin 1s linear infinite' }} />
+        <p style={{ marginTop: 16, fontWeight: 600, color: 'var(--text-secondary)' }}>Loading InvestQuest...</p>
+      </div>
+    );
+  }
 
   // Not logged in → show login
   if (!isLoggedIn) return <Login />;
