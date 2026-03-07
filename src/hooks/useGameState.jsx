@@ -17,7 +17,7 @@ const INITIAL_STATE = {
 
   worldProgress: { budget: 0, stocks: 0, crypto: 0 },
 
-  budget: { income: 3500, savings: 1200, debt: 4500, creditScore: 680, month: 1 },
+  budgetScenarioLevel: 1, // tracks user's current scenario
 
   marketStocks: SIM_STOCKS, // dynamic market data
   stockCash: 100000,
@@ -275,11 +275,11 @@ export function GameProvider({ children }) {
     });
   }, []);
 
-  const updateBudget = useCallback((changes) => {
+  const updateBudgetScenario = useCallback((nextLevel) => {
     setState((s) => ({
       ...s,
-      budget: { ...s.budget, ...changes },
-      worldProgress: { ...s.worldProgress, budget: Math.min(100, s.worldProgress.budget + 8) },
+      budgetScenarioLevel: nextLevel,
+      worldProgress: { ...s.worldProgress, budget: Math.min(100, s.worldProgress.budget + 20) },
     }));
   }, []);
 
@@ -331,7 +331,7 @@ export function GameProvider({ children }) {
     ...state, isLoggedIn, token, isInitializing,
     login, signup, logout,
     completeOnboarding, addXP, loseHeart, resetHearts, completeLesson,
-    setStartingAmount, executeTrade, updateBudget, setMinesweeperScore, sendMoney, skipTime,
+    setStartingAmount, executeTrade, updateBudgetScenario, setMinesweeperScore, sendMoney, skipTime,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

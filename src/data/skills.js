@@ -123,27 +123,47 @@ export const CRYPTO_TOKENS = [
   { id: 'rug2', name: 'SafeYield', symbol: 'SAFE', icon: '🛡️', price: 0.89, change: 85.0, color: '#ff4444', isRug: true },
 ];
 
-// ── BUDGET EVENTS ────────────────────────────────────────
-export const BUDGET_EVENTS = [
-  { id: 'e1', title: '🚗 Car Broke Down', desc: 'Transmission repair needed', cost: 1200, type: 'emergency', emoji: '🔧' },
-  { id: 'e2', title: '🎉 Birthday Gift', desc: 'Your friend\'s birthday is coming', cost: 75, type: 'want', emoji: '🎁' },
-  { id: 'e3', title: '💰 Tax Refund!', desc: 'IRS sent your refund', cost: -850, type: 'income', emoji: '💸' },
-  { id: 'e4', title: '🏥 Medical Bill', desc: 'Unexpected doctor visit', cost: 350, type: 'emergency', emoji: '💉' },
-  { id: 'e5', title: '📱 Phone Cracked', desc: 'Screen replacement needed', cost: 250, type: 'emergency', emoji: '📱' },
-  { id: 'e6', title: '🎵 Concert Tickets', desc: 'Your favorite artist is in town!', cost: 120, type: 'want', emoji: '🎶' },
-  { id: 'e7', title: '💼 Side Gig Income', desc: 'Freelance project payment', cost: -500, type: 'income', emoji: '💼' },
-  { id: 'e8', title: '🏠 Rent Increase', desc: 'Landlord raised rent by $100/mo', cost: 100, type: 'need', emoji: '🏠' },
-  { id: 'e9', title: '🛒 Grocery Sale', desc: 'Stock up on bulk deals', cost: -40, type: 'savings', emoji: '🛒' },
-  { id: 'e10', title: '⚡ Utility Spike', desc: 'Summer AC bill is brutal', cost: 180, type: 'need', emoji: '⚡' },
+// ── BUDGET SCENARIOS (50/30/20 GAME) ─────────────────────
+export const BUDGET_SCENARIOS = [
+  {
+    id: 1, title: 'Month 1: The Basics', income: 4000,
+    desc: 'You just got your first paycheck of $4,000! See if you can allocate your funds into the perfect 50/30/20 split.',
+    mandatory: [
+      { id: 'rent', name: 'Rent & Utilities', amount: 1200, icon: '🏠' },
+      { id: 'car', name: 'Car Payment', amount: 350, icon: '🚗' },
+      { id: 'groceries', name: 'Basic Groceries', amount: 400, icon: '🛒' }
+    ]
+  },
+  {
+    id: 2, title: 'Month 2: The Surprise Bill', income: 4200,
+    desc: 'You picked up an extra shift, but your car broke down! You HAVE to cover a $600 repair bill this month.',
+    mandatory: [
+      { id: 'rent', name: 'Rent & Utilities', amount: 1200, icon: '🏠' },
+      { id: 'car', name: 'Car Payment', amount: 350, icon: '🚗' },
+      { id: 'groceries', name: 'Basic Groceries', amount: 450, icon: '🛒' },
+      { id: 'repair', name: 'Surprise Car Repair', amount: 600, icon: '🔧', isSurprise: true }
+    ]
+  },
+  {
+    id: 3, title: 'Month 3: Treat Yourself?', income: 3800,
+    desc: 'Your income was slightly lower this month. You really want that $400 concert ticket, but will it fit your 30% Wants budget?',
+    mandatory: [
+      { id: 'rent', name: 'Rent & Utilities', amount: 1200, icon: '🏠' },
+      { id: 'car', name: 'Car Payment', amount: 350, icon: '🚗' },
+      { id: 'groceries', name: 'Basic Groceries', amount: 450, icon: '🛒' }
+    ]
+  }
 ];
 
-export const BUDGET_CATEGORIES = [
-  { id: 'rent', name: 'Rent/Housing', icon: '🏠', suggested: 1200 },
-  { id: 'food', name: 'Food/Groceries', icon: '🛒', suggested: 400 },
-  { id: 'transport', name: 'Transport', icon: '🚗', suggested: 200 },
-  { id: 'utilities', name: 'Utilities', icon: '⚡', suggested: 150 },
-  { id: 'savings', name: 'Savings', icon: '🏦', suggested: 500 },
-  { id: 'fun', name: 'Fun/Entertainment', icon: '🎮', suggested: 200 },
+export const ALL_BUDGET_CATEGORIES = [
+  { id: 'need_insurance', name: 'Health Insurance', type: 'need', min: 100, max: 400, icon: '🏥' },
+  { id: 'need_internet', name: 'Internet/Phone', type: 'need', min: 50, max: 150, icon: '📱' },
+  { id: 'want_dining', name: 'Dining Out', type: 'want', min: 0, max: 600, icon: '🍔' },
+  { id: 'want_entertainment', name: 'Concerts/Movies', type: 'want', min: 0, max: 500, icon: '🎟️' },
+  { id: 'want_shopping', name: 'Clothing/Shopping', type: 'want', min: 0, max: 800, icon: '🛍️' },
+  { id: 'save_emergency', name: 'Emergency Fund', type: 'save', min: 0, max: 1000, icon: '🚨' },
+  { id: 'save_invest', name: 'Investments/Stocks', type: 'save', min: 0, max: 1000, icon: '📈' },
+  { id: 'save_goal', name: 'Vacation Fund', type: 'save', min: 0, max: 500, icon: '✈️' }
 ];
 
 // ── PEER / SOCIAL ────────────────────────────────────────
