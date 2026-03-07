@@ -6,7 +6,7 @@ import { LEADERBOARD } from '../data/community';
 import { Flame, TrendingUp, Users, Zap, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 export default function Dashboard() {
-  const { username, xp, level, xpToNext, streak, lessonsCompleted, worldProgress, virtualCash } = useGameState();
+  const { username, xp, level, xpToNext, streak, lessonsCompleted, worldProgress, virtualCash, marketStocks } = useGameState();
   const navigate = useNavigate();
   const progress = (xp / xpToNext) * 100;
 
@@ -155,7 +155,7 @@ export default function Dashboard() {
         <button className="section-link" onClick={() => navigate('/arena')}>Trade →</button>
       </div>
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8, marginBottom: 20 }}>
-        {SIM_STOCKS.slice(0, 4).map((s) => (
+        {marketStocks.slice(0, 4).map((s) => (
           <div key={s.ticker} className="card" style={{ padding: '10px 14px', minWidth: 110, flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <span style={{ fontSize: '0.875rem' }}>{s.logo}</span>
