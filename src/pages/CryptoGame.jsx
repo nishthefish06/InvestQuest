@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGameState } from '../hooks/useGameState';
 import { CRYPTO_TOKENS } from '../data/skills';
 import { ArrowLeft, RotateCcw, Zap, Skull, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import GeminiFeedback from '../components/GeminiFeedback';
 
 function generateGrid(size, mineCount) {
   const cells = [];
@@ -167,12 +168,12 @@ export default function CryptoGame() {
       {/* Game Over */}
       {gameOver && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ textAlign: 'center', padding: '16px 0' }}>
+          style={{ textAlign: 'center', padding: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-red)', marginBottom: 8 }}>💀 Rug Pulled!</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>You hit a scam coin! Portfolio wiped out.</p>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-            Lesson: In crypto, always manage your risk and DYOR!
-          </p>
+
+          <GeminiFeedback gameType="crypto" gameState={{ pnlPct, pnlAmount: pnl, cashedOut: false, moves }} />
+
           <button className="btn btn-crypto btn-lg" onClick={reset}>
             <RotateCcw size={16} /> Try Again
           </button>
@@ -182,7 +183,7 @@ export default function CryptoGame() {
       {/* Cashed Out */}
       {cashed && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ textAlign: 'center', padding: '16px 0' }}>
+          style={{ textAlign: 'center', padding: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-green)', marginBottom: 8 }}>💰 Cashed Out!</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>Smart move knowing when to take profits!</p>
           <div style={{ padding: '10px 20px', background: 'rgba(245,158,11,0.1)', borderRadius: 9999, border: '1px solid rgba(245,158,11,0.2)', display: 'inline-block', marginBottom: 16 }}>
@@ -190,6 +191,9 @@ export default function CryptoGame() {
               +{Math.floor(Math.max(0, pnl) / 10) + moves * 5} XP
             </span>
           </div>
+
+          <GeminiFeedback gameType="crypto" gameState={{ pnlPct, pnlAmount: pnl, cashedOut: true, moves }} />
+
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
             <button className="btn btn-crypto btn-lg" onClick={reset}><RotateCcw size={16} /> Play Again</button>
             <button className="btn btn-secondary btn-lg" onClick={() => navigate('/world/crypto')}>Back</button>
