@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { GameProvider, useGameState } from './hooks/useGameState';
 import BottomNav from './components/BottomNav';
+import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import WorldHub from './pages/WorldHub';
@@ -13,9 +14,13 @@ import Community from './pages/Community';
 import Profile from './pages/Profile';
 
 function AppContent() {
-  const { onboarded } = useGameState();
+  const { isLoggedIn, onboarded } = useGameState();
   const location = useLocation();
 
+  // Not logged in → show login
+  if (!isLoggedIn) return <Login />;
+
+  // Logged in but not onboarded → show onboarding
   if (!onboarded) return <Onboarding />;
 
   const hideNav = ['/budget-game', '/crypto-game'].some((p) => location.pathname.startsWith(p)) ||

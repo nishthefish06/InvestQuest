@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 
 const GameContext = createContext();
 
@@ -12,35 +12,26 @@ const INITIAL_STATE = {
   streak: 7,
   hearts: 5,
   lessonsCompleted: 0,
-  virtualCash: 5000, // shared wallet for sending to buddies
+  virtualCash: 5000,
 
-  // Per-world progress
   worldProgress: { budget: 0, stocks: 0, crypto: 0 },
 
-  // Budget Boardwalk
   budget: { income: 3500, savings: 1200, debt: 4500, creditScore: 680, month: 1 },
 
-  // Stock Market Shore
   stockCash: 100000,
-  holdings: [
-    { ticker: 'BNAN', shares: 20, avgCost: 172.10 },
-    { ticker: 'GPUU', shares: 5, avgCost: 850.20 },
-    { ticker: 'FIZZ', shares: 50, avgCost: 58.90 },
-  ],
+  stockStartingAmount: null, // null = not chosen yet
+  holdings: [],
   tradeHistory: [],
 
-  // Crypto Caverns
   cryptoHoldings: [],
   minesweeperBestScore: 0,
 
-  // Buddies
   buddyTransactions: [],
 
-  // Achievements
   achievements: [
     { id: 'first_lesson', name: 'First Lesson', icon: '⭐', color: '#f59e0b', earned: true },
     { id: 'streak3', name: '3-Day Streak', icon: '🔥', color: '#ef4444', earned: true },
-    { id: 'first_trade', name: 'First Trade', icon: '📈', color: '#10b981', earned: true },
+    { id: 'first_trade', name: 'First Trade', icon: '📈', color: '#10b981', earned: false },
     { id: 'budget_master', name: 'Budget Pro', icon: '🏖️', color: '#06b6d4', earned: false },
     { id: 'crypto_miner', name: 'Crypto Miner', icon: '⛏️', color: '#f59e0b', earned: false },
     { id: 'all_worlds', name: 'Explorer', icon: '🌍', color: '#a855f7', earned: false },
@@ -49,9 +40,88 @@ const INITIAL_STATE = {
   ],
 };
 
+// ── API helpers ───────────────────────────────────────
+const API = {
+  async signup(username, password) {
+    const res = await fetch('/api/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Signup failed');
+    return data;
+  },
+  async login(username, password) {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+    return data;
+  },
+  async save(token, gameState) {
+    await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ gameState }),
+    });
+  },
+};
+
 export function GameProvider({ children }) {
   const [state, setState] = useState(INITIAL_STATE);
+  const [token, setToken] = useState(() => localStorage.getItem('iq_token'));
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('iq_token'));
+  const saveTimer = useRef(null);
 
+  // Auto-save debounced (save 2s after last state change)
+  useEffect(() => {
+    if (!token || !isLoggedIn) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const { achievements, ...saveable } = state;
+      API.save(token, saveable).catch(() => {});
+    }, 2000);
+    return () => clearTimeout(saveTimer.current);
+  }, [state, token, isLoggedIn]);
+
+  // ── Auth functions ──────────────────────────────────
+  const signup = useCallback(async (username, password) => {
+    const data = await API.signup(username, password);
+    localStorage.setItem('iq_token', data.token);
+    setToken(data.token);
+    setIsLoggedIn(true);
+    setState((s) => ({ ...s, username: data.username, onboarded: false }));
+  }, []);
+
+  const login = useCallback(async (username, password) => {
+    const data = await API.login(username, password);
+    localStorage.setItem('iq_token', data.token);
+    setToken(data.token);
+    setIsLoggedIn(true);
+    if (data.gameState) {
+      setState((s) => ({
+        ...INITIAL_STATE,
+        ...data.gameState,
+        achievements: s.achievements, // keep achievement structure
+        username: data.username,
+      }));
+    } else {
+      setState((s) => ({ ...s, username: data.username, onboarded: false }));
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('iq_token');
+    setToken(null);
+    setIsLoggedIn(false);
+    setState(INITIAL_STATE);
+  }, []);
+
+  // ── Game functions ──────────────────────────────────
   const completeOnboarding = useCallback((data) => {
     setState((s) => ({ ...s, onboarded: true, username: data.username || s.username, dailyGoal: data.dailyGoal || s.dailyGoal }));
   }, []);
@@ -82,10 +152,19 @@ export function GameProvider({ children }) {
     setState((s) => ({
       ...s,
       lessonsCompleted: s.lessonsCompleted + 1,
-      worldProgress: {
-        ...s.worldProgress,
-        [world]: Math.min(100, s.worldProgress[world] + 12),
-      },
+      worldProgress: { ...s.worldProgress, [world]: Math.min(100, s.worldProgress[world] + 12) },
+    }));
+  }, []);
+
+  // ── Stock starting amount ──────────────────────────
+  const setStartingAmount = useCallback((amount) => {
+    setState((s) => ({
+      ...s,
+      stockCash: amount,
+      stockStartingAmount: amount,
+      holdings: [],
+      tradeHistory: [],
+      achievements: s.achievements.map((a) => a.id === 'first_trade' ? { ...a, earned: false } : a),
     }));
   }, []);
 
@@ -119,6 +198,7 @@ export function GameProvider({ children }) {
         stockCash: newCash,
         holdings: newHoldings,
         tradeHistory: [...s.tradeHistory, { ticker, type, shares, price, time: Date.now() }],
+        achievements: s.achievements.map((a) => a.id === 'first_trade' ? { ...a, earned: true } : a),
       };
     });
   }, []);
@@ -151,7 +231,12 @@ export function GameProvider({ children }) {
     });
   }, []);
 
-  const value = { ...state, completeOnboarding, addXP, loseHeart, resetHearts, completeLesson, executeTrade, updateBudget, setMinesweeperScore, sendMoney };
+  const value = {
+    ...state, isLoggedIn, token,
+    login, signup, logout,
+    completeOnboarding, addXP, loseHeart, resetHearts, completeLesson,
+    setStartingAmount, executeTrade, updateBudget, setMinesweeperScore, sendMoney,
+  };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }

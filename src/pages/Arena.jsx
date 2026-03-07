@@ -88,7 +88,7 @@ function TradeModal({ stock, onClose, onTrade }) {
 }
 
 export default function Arena() {
-  const { stockCash, holdings, executeTrade, addXP } = useGameState();
+  const { stockCash, stockStartingAmount, holdings, executeTrade, addXP, setStartingAmount } = useGameState();
   const [selectedStock, setSelectedStock] = useState(null);
   const [tab, setTab] = useState('market'); // market | portfolio | arena
 
@@ -108,6 +108,48 @@ export default function Arena() {
     executeTrade(ticker, type, shares, price);
     addXP(15);
   };
+
+  // ── Starting Amount Picker ─────────────────────────
+  if (!stockStartingAmount) {
+    const amounts = [
+      { value: 10000, label: '$10K', desc: 'Conservative start', icon: '🌱', color: '#10b981' },
+      { value: 50000, label: '$50K', desc: 'Balanced portfolio', icon: '📊', color: '#06b6d4' },
+      { value: 100000, label: '$100K', desc: 'Serious trader', icon: '💼', color: '#a855f7' },
+      { value: 500000, label: '$500K', desc: 'Wall Street whale', icon: '🐋', color: '#f59e0b' },
+    ];
+    return (
+      <div className="page-content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '80vh' }}>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ fontSize: '3rem', marginBottom: 12, animation: 'float 3s ease-in-out infinite' }}>💰</div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 900, marginBottom: 4 }}>Choose Your Capital</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>How much virtual cash to start trading?</p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {amounts.map((a) => (
+            <motion.button key={a.value} whileTap={{ scale: 0.97 }}
+              onClick={() => setStartingAmount(a.value)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px',
+                background: 'var(--bg-card)', border: `2px solid ${a.color}33`,
+                borderRadius: 'var(--radius-lg)', textAlign: 'left',
+                transition: 'all 0.25s',
+              }}>
+              <div style={{
+                width: 50, height: 50, borderRadius: 14,
+                background: `${a.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.5rem', boxShadow: `0 0 15px ${a.color}22`,
+              }}>{a.icon}</div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.25rem', color: a.color }}>{a.label}</h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{a.desc}</p>
+              </div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '1.2rem' }}>→</div>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-content">

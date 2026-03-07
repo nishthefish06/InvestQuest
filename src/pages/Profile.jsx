@@ -5,10 +5,10 @@ import { useGameState } from '../hooks/useGameState';
 import { BUDDY_LIST } from '../data/skills';
 import { SIM_STOCKS } from '../data/skills';
 import { WORLDS } from '../data/skills';
-import { Settings, ChevronRight, Send, DollarSign } from 'lucide-react';
+import { Settings, ChevronRight, Send, DollarSign, LogOut } from 'lucide-react';
 
 export default function Profile() {
-  const { username, xp, level, xpToNext, streak, lessonsCompleted, achievements, holdings, stockCash, virtualCash, worldProgress, buddyTransactions, sendMoney } = useGameState();
+  const { username, xp, level, xpToNext, streak, lessonsCompleted, achievements, holdings, stockCash, virtualCash, worldProgress, buddyTransactions, sendMoney, logout } = useGameState();
   const navigate = useNavigate();
   const progress = (xp / xpToNext) * 100;
   const [sendingTo, setSendingTo] = useState(null);
@@ -151,6 +151,12 @@ export default function Profile() {
           ))}
         </div>
       </div>
+
+      {/* Logout */}
+      <button className="btn btn-secondary btn-block" onClick={logout}
+        style={{ marginBottom: 16, color: 'var(--accent-red)', borderColor: 'rgba(239,68,68,0.2)' }}>
+        <LogOut size={16} /> Log Out
+      </button>
     </div>
   );
 }
