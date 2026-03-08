@@ -39,7 +39,34 @@ export default function WorldHub() {
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 800 }}>{world.name}</h1>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{world.desc}</p>
         </div>
-      </div>
+    </div>
+
+      {/* World Map Image */}
+      {world.mapImage && (
+        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
+          style={{ 
+            width: '100%', 
+            height: 160, 
+            borderRadius: 'var(--radius-xl)', 
+            overflow: 'hidden', 
+            marginBottom: 20,
+            border: `1px solid ${world.color}33`,
+            boxShadow: `0 8px 24px -8px ${world.color}40`,
+            position: 'relative'
+          }}>
+          <img 
+            src={world.mapImage} 
+            alt={world.name} 
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+          />
+          <div style={{
+            position: 'absolute',
+            bottom: 0, left: 0, right: 0,
+            height: '40%',
+            background: `linear-gradient(to top, var(--bg-primary), transparent)`
+          }} />
+        </motion.div>
+      )}
 
       {/* Progress */}
       <div className="card" style={{ padding: 14, marginBottom: 16 }}>

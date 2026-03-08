@@ -5,18 +5,21 @@ export const WORLDS = [
     color: '#06b6d4', gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)',
     desc: 'Master daily budgeting, saving & emergencies',
     multiplayer: false, tagline: 'Simulate real life finances',
+    mapImage: '/budget-map.png'
   },
   {
     id: 'stocks', name: 'Stock Market Shore', icon: '📊',
     color: '#10b981', gradient: 'linear-gradient(135deg, #10b981, #059669)',
     desc: 'Research companies, pick stocks & manage risk',
     multiplayer: true, tagline: 'Trade & compete with peers',
+    mapImage: '/stocks-map.png'
   },
   {
     id: 'crypto', name: 'Crypto Caverns', icon: '⛏️',
     color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
     desc: 'Navigate volatile crypto markets & avoid rug pulls',
     multiplayer: true, tagline: 'Mine profits, dodge crashes',
+    mapImage: '/crypto-map.png'
   },
 ];
 
