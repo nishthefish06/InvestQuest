@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useGameState } from '../hooks/useGameState';
 import { BUDGET_SCENARIOS, ALL_BUDGET_CATEGORIES } from '../data/skills';
-import { ArrowLeft, ArrowRight, RotateCcw, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, RotateCcw, AlertCircle, Sparkles, Loader2, X } from 'lucide-react';
 import GeminiFeedback from '../components/GeminiFeedback';
 import { generateSimEvent } from '../services/gemini';
 
@@ -170,7 +170,38 @@ export default function BudgetGame() {
     const categoryColors = { emergency: '#ef4444', opportunity: '#10b981', routine: '#06b6d4', social: '#a855f7' };
 
     return (
-      <div className="page-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh', justifyContent: 'center', paddingBottom: 40 }}>
+      <div className="page-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh', justifyContent: 'center', paddingBottom: 40, position: 'relative' }}>
+        {/* Exit button */}
+        <button 
+          onClick={() => navigate('/world/budget')}
+          style={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            background: 'var(--bg-card)',
+            border: '1.5px solid var(--border-glass)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            zIndex: 10,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--bg-card-hover)';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'var(--bg-card)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+          title="Exit game"
+        >
+          <X size={18} color="var(--text-secondary)" />
+        </button>
         <AnimatePresence mode="wait">
           {eventLoading ? (
             <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

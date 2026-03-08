@@ -229,15 +229,32 @@ export function GameProvider({ children }) {
   const dismissChallenge = useCallback(() => setIncomingChallenge(null), []);
 
   const triggerPusherEvent = useCallback(async (channel, event, data) => {
-    if (!token) throw new Error('Not authenticated');
+    // Re-check token from localStorage in case it was updated
+    const currentToken = token || localStorage.getItem('iq_token');
+    
+    if (!currentToken) {
+      throw new Error('Not authenticated - please log in again');
+    }
+    
     const res = await fetch('/api/pusher/trigger', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify({ channel, event, data }),
     });
+    
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || 'Failed to trigger pusher event');
+      
+      // If unauthorized, clear token and force re-login
+      if (res.status === 401) {
+        console.error('Token invalid or expired');
+        localStorage.removeItem('iq_token');
+        setToken(null);
+        setIsLoggedIn(false);
+        throw new Error('Session expired - please log in again');
+      }
+      
+      throw new Error(errData.error || `Failed to send challenge (${res.status})`);
     }
   }, [token]);
 
