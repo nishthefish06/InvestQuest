@@ -3,7 +3,7 @@
 
 > **HackAI 2026** — NRVE Track · Best Use of Gemini API · Best Hack Built with Google Antigravity · Best Use of MongoDB Atlas
 
-**[🚀 Live Demo](https://invest-quest.vercel.app)** · Built with React, Gemini 2.5 Flash, MongoDB Atlas, and Pusher
+**[🚀 Live Demo](https://invest-quest-five.vercel.app/)** · Built with React, Gemini 2.5 Flash, MongoDB Atlas, and Pusher
 
 ---
 
