@@ -42,8 +42,8 @@ export default async function handler(req, res) {
       const friends = target.gameState?.friends || [];
       const requests = target.gameState?.friendRequests || [];
       
-      const isFriend = friends.some(f => f.username.toLowerCase() === currentUser.toLowerCase());
-      const isRequested = requests.some(r => r.toLowerCase() === currentUser.toLowerCase());
+      const isFriend = friends.some(f => f && f.username && typeof f.username === 'string' && f.username.toLowerCase() === currentUser.toLowerCase());
+      const isRequested = requests.some(r => typeof r === 'string' && r.toLowerCase() === currentUser.toLowerCase());
 
       if (isFriend) return res.status(400).json({ error: 'Already friends' });
       if (isRequested) return res.status(400).json({ error: 'Request already sent' });
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
         db.collection('users').updateOne(
           { _id: sender._id },
           { 
-            $pull: { 'gameState.friendRequests': { $regex: new RegExp(`^${targetExactName}$`, 'i') } },
+            $pull: { 'gameState.friendRequests': { $regex: `^${targetExactName}$`, $options: 'i' } },
             $addToSet: { 'gameState.friends': newFriendForCurrent }
           }
         ),
@@ -87,8 +87,7 @@ export default async function handler(req, res) {
           { _id: target._id },
           { 
             $addToSet: { 'gameState.friends': newFriendForTarget },
-            // Also clean up if target had sent a request to current
-            $pull: { 'gameState.friendRequests': { $regex: new RegExp(`^${currentUser}$`, 'i') } }
+            $pull: { 'gameState.friendRequests': { $regex: `^${currentUser}$`, $options: 'i' } }
           }
         )
       ]);
@@ -99,7 +98,7 @@ export default async function handler(req, res) {
     else if (action === 'reject') {
       await db.collection('users').updateOne(
         { _id: sender._id },
-        { $pull: { 'gameState.friendRequests': { $regex: new RegExp(`^${targetExactName}$`, 'i') } } }
+        { $pull: { 'gameState.friendRequests': { $regex: `^${targetExactName}$`, $options: 'i' } } }
       );
       return res.status(200).json({ ok: true, message: 'Request rejected' });
     }

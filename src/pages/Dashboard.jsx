@@ -1,196 +1,299 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useGameState } from '../hooks/useGameState';
-import { WORLDS, SIM_STOCKS } from '../data/skills';
+import { WORLDS } from '../data/skills';
 import { LEADERBOARD } from '../data/community';
 import { Flame, TrendingUp, Users, Zap, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+
+const COINS = [
+  { id: 1, top: '2%', left: '8%', size: 60, delay: 0, rotate: 15 },
+  { id: 2, top: '2%', left: '25%', size: 45, delay: 1, rotate: -10 },
+  { id: 3, top: '-2%', left: '55%', size: 70, delay: 0.5, rotate: 25 },
+  { id: 4, top: '5%', left: '85%', size: 55, delay: 1.5, rotate: -5 },
+];
+
+const BOTTOM_COINS = [
+  { id: 5, bottom: '2%', left: '10%', size: 65, delay: 0.2, rotate: -15 },
+  { id: 6, bottom: '-2%', left: '35%', size: 80, delay: 0.8, rotate: 20 },
+  { id: 7, bottom: '3%', left: '60%', size: 50, delay: 0, rotate: -5 },
+  { id: 8, bottom: '2%', left: '80%', size: 40, delay: 1.2, rotate: 10 },
+];
+
+function DecorCoins({ coins }) {
+  return (
+    <>
+      {coins.map((coin) => (
+        <motion.img
+          key={coin.id}
+          src="/coin.png"
+          alt=""
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ 
+            opacity: 1, 
+            scale: 1,
+            y: [0, -10, 0],
+            rotate: [coin.rotate, coin.rotate + 5, coin.rotate]
+          }}
+          transition={{ 
+            duration: 4, 
+            repeat: Infinity, 
+            ease: "easeInOut",
+            delay: coin.delay 
+          }}
+          style={{
+            position: 'absolute',
+            top: coin.top,
+            left: coin.left,
+            bottom: coin.bottom,
+            width: coin.size,
+            height: coin.size,
+            objectFit: 'contain',
+            pointerEvents: 'none',
+            zIndex: 0,
+            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+          }}
+        />
+      ))}
+    </>
+  );
+}
 
 export default function Dashboard() {
   const { username, xp, level, xpToNext, streak, lessonsCompleted, worldProgress, marketStocks, friends } = useGameState();
   const navigate = useNavigate();
   const progress = (xp / xpToNext) * 100;
 
-  // Island positions for the visual world map
-  const islands = [
-    { ...WORLDS[0], x: '10%', y: '5%', size: 100, rotation: -5 },
-    { ...WORLDS[1], x: '55%', y: '25%', size: 100, rotation: 3 },
-    { ...WORLDS[2], x: '15%', y: '50%', size: 100, rotation: -2 },
-  ];
+  const bgLight = '#4d7f5c'; // Darker sage green base
+  const bgDark = '#416a4d';  // Even darker sage for gradient
+  const amber = '#f39c12';
+  const headerTeal = '#dceddd'; // Lighter text color to contrast dark background
+  const cardSage = '#385c43'; // Darker card background
+  const trackSage = 'rgba(255,255,255,0.1)';
+  const progressBlue = '#f39c12'; 
 
   return (
-    <div className="page-content">
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <div>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Welcome back</p>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 8 }}>
-            {username} 
-            <img src="/logo.png" alt="Logo" style={{ height: '1.5rem', width: '1.5rem', objectFit: 'contain' }} />
-          </h1>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'rgba(245,158,11,0.1)', borderRadius: 9999, border: '1px solid rgba(245,158,11,0.2)' }}>
-          <Flame size={16} color="var(--accent-orange)" />
-          <span style={{ fontWeight: 700, color: 'var(--accent-orange)', fontSize: '0.875rem' }}>{streak} days</span>
-        </div>
+    <div style={{
+      minHeight: '100dvh',
+      background: `radial-gradient(circle at center, ${bgLight} 0%, ${bgDark} 100%)`,
+      color: headerTeal,
+      position: 'relative',
+      overflowX: 'hidden',
+      paddingBottom: 20
+    }}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+        <DecorCoins coins={COINS} />
+        <DecorCoins coins={BOTTOM_COINS} />
       </div>
 
-      {/* Level + XP Card */}
-      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--gradient-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '1.125rem', boxShadow: 'var(--shadow-glow-purple)' }}>
+      <div className="page-content" style={{ position: 'relative', zIndex: 1, padding: '24px 20px 90px' }}>
+        
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, marginTop: 40 }}>
+          <div>
+            <p style={{ fontSize: '1.25rem', fontWeight: 700, color: amber, marginBottom: -4 }}>Welcome back</p>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 900, color: amber, letterSpacing: '-0.02em' }}>
+              {username}
+            </h1>
+          </div>
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', 
+              background: 'rgba(255,255,255,0.15)', borderRadius: 9999, 
+              backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.2)' 
+            }}
+          >
+            <Flame size={20} color={amber} fill={amber} />
+            <span style={{ fontWeight: 800, color: '#f39c12', fontSize: '1rem' }}>{streak} days</span>
+          </motion.div>
+        </div>
+
+        {/* Level + XP Card */}
+        <div style={{ 
+          background: cardSage, borderRadius: 24, padding: '16px 20px', 
+          display: 'flex', alignItems: 'center', gap: 18, marginBottom: 16,
+          boxShadow: '0 8px 16px rgba(0,0,0,0.08)'
+        }}>
+          <div style={{ 
+            width: 72, height: 72, borderRadius: '50%', background: 'rgba(26,83,92,0.2)', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '2.5rem', color: amber
+          }}>
             {level}
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ fontWeight: 700 }}>Level {level}</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{xp} / {xpToNext} XP</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: headerTeal }}>level one</span>
+              <span style={{ fontSize: '0.875rem', fontWeight: 700, opacity: 0.7 }}>{xp}/{xpToNext} XP</span>
             </div>
-            <div className="progress-bar" style={{ height: 6 }}>
-              <div className="progress-fill" style={{ width: `${progress}%` }} />
+            <div style={{ width: '100%', height: 16, background: trackSage, borderRadius: 100, overflow: 'hidden' }}>
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                style={{ height: '100%', background: progressBlue, borderRadius: 100 }} 
+              />
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Quick Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
-        {[
-          { icon: <Zap size={16} />, val: lessonsCompleted, label: 'Lessons', color: 'var(--accent-purple)' },
-          { icon: <TrendingUp size={16} />, val: `${worldProgress.budget + worldProgress.stocks + worldProgress.crypto}%`, label: 'Completion', color: 'var(--accent-green)' },
-          { icon: <Users size={16} />, val: friends?.length || 0, label: 'Friends', color: 'var(--accent-cyan)' },
-        ].map((s, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}
-            className="card" style={{ padding: '12px 8px', textAlign: 'center' }}>
-            <div style={{ color: s.color, marginBottom: 4, display: 'flex', justifyContent: 'center' }}>{s.icon}</div>
-            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1rem' }}>{s.val}</p>
-            <p style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{s.label}</p>
-          </motion.div>
-        ))}
-      </div>
+        {/* Lessons & Buddies Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <div style={{ 
+            background: cardSage, borderRadius: 24, padding: '16px', textAlign: 'center',
+            boxShadow: '0 8px 16px rgba(0,0,0,0.05)'
+          }}>
+            <p style={{ fontSize: '2rem', fontWeight: 900, color: headerTeal, lineHeight: 1 }}>{lessonsCompleted}</p>
+            <p style={{ fontSize: '1rem', fontWeight: 700, opacity: 0.8 }}>lessons</p>
+          </div>
+          <div style={{ 
+            background: cardSage, borderRadius: 24, padding: '16px', textAlign: 'center',
+            boxShadow: '0 8px 16px rgba(0,0,0,0.05)'
+          }}>
+            <p style={{ fontSize: '2rem', fontWeight: 900, color: headerTeal, lineHeight: 1 }}>{friends?.length || 0}</p>
+            <p style={{ fontSize: '1rem', fontWeight: 700, opacity: 0.8 }}>buddies</p>
+          </div>
+        </div>
 
-      {/* ── WORLD MAP ─────────────────────────────────── */}
-      <div className="section-header">
-        <h2 className="section-title">🗺️ World Map</h2>
-      </div>
-      <div style={{
-        position: 'relative', width: '100%', height: 320, marginBottom: 24,
-        background: 'linear-gradient(180deg, rgba(10,10,40,0.8) 0%, rgba(15,15,50,0.6) 100%)',
-        borderRadius: 'var(--radius-xl)', border: '1px solid var(--border-glass)',
-        overflow: 'hidden',
-      }}>
-        {/* Animated wave background */}
-        <div style={{ position: 'absolute', inset: 0, opacity: 0.08, background: 'repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(6,182,212,0.3) 40px, rgba(6,182,212,0.3) 41px)' }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, opacity: 0.06, background: 'repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(16,185,129,0.5) 8px, rgba(16,185,129,0.5) 9px)' }} />
+        {/* Our World Button */}
+        <div 
+          style={{ 
+            width: '100%', background: cardSage, borderRadius: 32, 
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            padding: '24px 16px 32px', marginBottom: 24, position: 'relative',
+            boxShadow: '0 12px 24px rgba(0,0,0,0.08)'
+          }}
+        >
+          <div style={{ 
+            background: '#dceddd', padding: '6px 20px', borderRadius: 9999,
+            fontSize: '1.125rem', fontWeight: 900, color: cardSage,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}>
+            our world
+          </div>
 
-        {/* Dotted paths between islands */}
-        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-          <path d="M 95 75 Q 160 110 230 105" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" strokeDasharray="6 4" />
-          <path d="M 230 125 Q 180 180 120 210" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" strokeDasharray="6 4" />
-        </svg>
-
-        {/* Islands */}
-        {islands.map((island, i) => (
-          <motion.div
-            key={island.id}
-            initial={{ opacity: 0, scale: 0.5, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ delay: 0.2 + i * 0.12, type: 'spring', stiffness: 200 }}
-            onClick={() => navigate(`/world/${island.id}`)}
-            style={{
-              position: 'absolute', left: island.x, top: island.y,
-              width: island.size, cursor: 'pointer',
-              transform: `rotate(${island.rotation}deg)`,
-              transition: 'transform 0.3s ease',
-            }}
-          >
-            {/* Island base */}
-            <div style={{
-              width: island.size, height: island.size,
-              borderRadius: '50% 50% 45% 55% / 50% 45% 55% 50%',
-              background: `radial-gradient(circle at 40% 35%, ${island.color}44, ${island.color}11)`,
-              border: `2px solid ${island.color}55`,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              boxShadow: `0 0 30px ${island.color}22, 0 4px 20px rgba(0,0,0,0.3)`,
-              position: 'relative',
-            }}>
-              <span style={{ fontSize: '1.75rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}>{island.icon}</span>
-              <div style={{
-                position: 'absolute', bottom: -28, left: '50%', transform: 'translateX(-50%)',
-                whiteSpace: 'nowrap', textAlign: 'center',
-              }}>
-                <p style={{ fontSize: '0.6875rem', fontWeight: 700, color: island.color, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
-                  {island.name.split(' ').slice(0, 2).join(' ')}
-                </p>
-                <p style={{ fontSize: '0.5625rem', color: 'var(--text-muted)' }}>{worldProgress[island.id]}%</p>
-              </div>
-            </div>
-
-            {/* Progress ring */}
-            <svg width={island.size + 10} height={island.size + 10} style={{ position: 'absolute', top: -5, left: -5, pointerEvents: 'none' }}>
-              <circle cx={(island.size + 10) / 2} cy={(island.size + 10) / 2} r={(island.size / 2) + 2}
-                fill="none" stroke={`${island.color}33`} strokeWidth="3" />
-              <circle cx={(island.size + 10) / 2} cy={(island.size + 10) / 2} r={(island.size / 2) + 2}
-                fill="none" stroke={island.color} strokeWidth="3"
-                strokeDasharray={`${(worldProgress[island.id] / 100) * Math.PI * (island.size + 4)} ${Math.PI * (island.size + 4)}`}
-                strokeLinecap="round"
-                transform={`rotate(-90 ${(island.size + 10) / 2} ${(island.size + 10) / 2})`} />
+          <div style={{ position: 'relative', height: 210, width: 280, marginTop: 16 }}>
+            {/* SVG Connecting Lines */}
+            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}>
+              <line x1="55" y1="55" x2="225" y2="55" stroke="#21402a" strokeWidth="2" />
+              <line x1="55" y1="55" x2="140" y2="155" stroke="#21402a" strokeWidth="2" />
+              <line x1="225" y1="55" x2="140" y2="155" stroke="#21402a" strokeWidth="2" />
             </svg>
 
-            {/* Multiplayer badge */}
-            {island.multiplayer && (
-              <div style={{
-                position: 'absolute', top: -6, right: -6,
-                padding: '2px 6px', borderRadius: 9999,
-                background: 'rgba(245,158,11,0.9)', color: '#000',
-                fontSize: '0.5rem', fontWeight: 800,
-                boxShadow: '0 2px 8px rgba(245,158,11,0.4)',
-              }}>
-                MP
-              </div>
-            )}
-          </motion.div>
-        ))}
-      </div>
+            {/* Top Left - Budget */}
+            <motion.div 
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/world/budget')}
+              style={{
+                position: 'absolute', top: 0, left: 0, width: 110, height: 110, 
+                borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', zIndex: 2,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+              }}
+            >
+              <img src="/budget-map.png" alt="Budget Boardwalk" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </motion.div>
 
-      {/* Market Movers Mini */}
-      <div className="section-header">
-        <h2 className="section-title">📊 Market Movers</h2>
-        <button className="section-link" onClick={() => navigate('/arena')}>Trade →</button>
-      </div>
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8, marginBottom: 20 }}>
-        {marketStocks.slice(0, 4).map((s) => (
-          <div key={s.ticker} className="card" style={{ padding: '10px 14px', minWidth: 110, flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              <span style={{ fontSize: '0.875rem' }}>{s.logo}</span>
-              <span style={{ fontWeight: 700, fontSize: '0.8125rem' }}>{s.ticker}</span>
-            </div>
-            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.875rem' }}>${s.price.toFixed(2)}</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {s.change >= 0 ? <ArrowUpRight size={12} color="var(--accent-green)" /> : <ArrowDownRight size={12} color="var(--accent-red)" />}
-              <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: s.change >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
-                {s.change >= 0 ? '+' : ''}{s.changePct}%
+            {/* Top Right - Stocks */}
+            <motion.div 
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/world/stocks')}
+              style={{
+                position: 'absolute', top: 0, right: 0, width: 110, height: 110, 
+                borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', zIndex: 2,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+              }}
+            >
+              <img src="/stocks-map.png" alt="Stock Market Shore" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </motion.div>
+
+            {/* Bottom Center - Crypto */}
+            <motion.div 
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/world/crypto')}
+              style={{
+                position: 'absolute', top: 100, left: 85, width: 110, height: 110, 
+                borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', zIndex: 2,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+              }}
+            >
+              <img src="/crypto-map.png" alt="Crypto Caverns" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Market Movers */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ 
+            background: cardSage, padding: '6px 14px', borderRadius: 12, 
+            fontSize: '1rem', fontWeight: 900, color: headerTeal 
+          }}>
+            Market Movers
+          </div>
+          <button onClick={() => navigate('/arena')} style={{ fontWeight: 800, fontSize: '0.875rem', color: headerTeal, opacity: 0.8, cursor: 'pointer', background: 'none', border: 'none' }}>
+            Trade →
+          </button>
+        </div>
+        <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 12, marginBottom: 16 }}>
+          {marketStocks.slice(0, 3).map((s) => (
+            <div key={s.ticker} style={{ 
+              background: cardSage, padding: '16px', borderRadius: 20, minWidth: 110, flex: 1,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+            }}>
+              <span style={{ fontSize: '1.5rem', marginBottom: 2 }}>{s.logo}</span>
+              <span style={{ fontWeight: 900, fontSize: '0.875rem', color: headerTeal }}>{s.ticker}</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '0.9375rem', color: headerTeal }}>
+                ${s.price.toFixed(2)}
               </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.15)', padding: '2px 6px', borderRadius: 8 }}>
+                {s.change >= 0 ? <ArrowUpRight size={12} color="#fff" /> : <ArrowDownRight size={12} color="#ffb3b3" />}
+                <span style={{ fontSize: '0.6875rem', fontWeight: 800, color: s.change >= 0 ? '#fff' : '#ffb3b3' }}>
+                  {s.change >= 0 ? '+' : ''}{s.changePct}%
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* Leaderboard */}
-      <div className="section-header">
-        <h2 className="section-title">🏆 Leaderboard</h2>
-        <span className="section-link">This Week</span>
-      </div>
-      <div className="card" style={{ padding: 12 }}>
-        {LEADERBOARD.slice(0, 3).map((p) => (
-          <div key={p.rank} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: p.rank < 3 ? '1px solid var(--border-subtle)' : 'none' }}>
-            <span style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6875rem', fontWeight: 800, background: p.rank <= 3 ? 'var(--gradient-purple)' : 'var(--bg-card)', fontFamily: 'var(--font-display)' }}>{p.rank}</span>
-            <span style={{ fontSize: '1rem' }}>{p.avatar}</span>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{p.name}</p>
-              <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>{p.xp.toLocaleString()} XP · {p.portfolioReturn}</p>
-            </div>
+        {/* Leaderboard */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ 
+            background: cardSage, padding: '6px 14px', borderRadius: 12, 
+            fontSize: '1rem', fontWeight: 900, color: headerTeal 
+          }}>
+            Leaderboard
           </div>
-        ))}
+          <span style={{ fontWeight: 800, fontSize: '0.875rem', color: headerTeal, opacity: 0.6 }}>
+            This week
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {LEADERBOARD.slice(0, 3).map((p) => (
+            <div key={p.rank} style={{ 
+              background: cardSage, padding: '12px 20px', borderRadius: 24, 
+              display: 'flex', alignItems: 'center', gap: 12, minHeight: 64, 
+              boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
+            }}>
+              <span style={{ 
+                width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                fontSize: '0.875rem', fontWeight: 900, background: p.rank <= 3 ? 'rgba(255,255,255,0.2)' : 'transparent', 
+                fontFamily: 'var(--font-display)', color: headerTeal 
+              }}>
+                {p.rank}
+              </span>
+              <span style={{ fontSize: '1.25rem' }}>{p.avatar}</span>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <p style={{ fontWeight: 800, fontSize: '0.9375rem', color: headerTeal }}>{p.name}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7 }}>{p.xp.toLocaleString()} XP</span>
+                  <span style={{ fontSize: '0.75rem', opacity: 0.4 }}>•</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f39c12' }}>{p.portfolioReturn}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
       </div>
     </div>
   );

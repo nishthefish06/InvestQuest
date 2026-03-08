@@ -113,6 +113,10 @@ export default function Arena() {
   const [selectedStock, setSelectedStock] = useState(null);
   const [tab, setTab] = useState('market'); // market | portfolio | arena
   const [opponent, setOpponent] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(matchId ? 180 : null); // 3 min in seconds
+  const [matchOver, setMatchOver] = useState(false);
+
+  const formatTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   const priceHistories = useMemo(() => {
     const map = {};
@@ -132,8 +136,18 @@ export default function Arena() {
     if (matchId && !matchInitRef.current) {
       matchInitRef.current = true;
       setStartingAmount(100000); // resets cash + clears holdings
+      setTimeLeft(180);
+      setMatchOver(false);
     }
   }, [matchId, setStartingAmount]);
+
+  // ── Match Countdown Timer ──────────────────────────
+  useEffect(() => {
+    if (!matchId || matchOver) return;
+    if (timeLeft <= 0) { setMatchOver(true); return; }
+    const t = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
+    return () => clearTimeout(t);
+  }, [matchId, timeLeft, matchOver]);
 
   // ── Multiplayer Logic ──────────────────────────────
   useEffect(() => {
@@ -264,10 +278,19 @@ export default function Arena() {
             <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', opacity: 0.8, letterSpacing: '0.05em' }}>You</p>
             <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.25rem', color: '#fff' }}>${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Swords size={16} color="#fff" />
             </div>
+            {timeLeft !== null && (
+              <span style={{
+                fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '0.875rem',
+                color: timeLeft <= 30 ? '#ff4444' : '#fff',
+                background: timeLeft <= 30 ? 'rgba(255,68,68,0.2)' : 'rgba(255,255,255,0.15)',
+                borderRadius: 6, padding: '2px 8px',
+                animation: timeLeft <= 10 ? 'pulse-glow 0.5s ease-in-out infinite' : undefined,
+              }}>{formatTime(timeLeft)}</span>
+            )}
           </div>
           <div style={{ textAlign: 'right' }}>
             <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', opacity: 0.8, letterSpacing: '0.05em' }}>{opponent ? opponent.username : 'Waiting...'}</p>
@@ -275,6 +298,53 @@ export default function Arena() {
               {opponent ? `$${opponent.netWorth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '---'}
             </p>
           </div>
+        </motion.div>
+      )}
+
+      {/* Match Over Result Overlay */}
+      {matchId && matchOver && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <motion.div initial={{ scale: 0.7, y: 30 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+            style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-xl)', padding: 36, width: '100%', maxWidth: 340, textAlign: 'center', border: '2px solid var(--border-glass)' }}>
+            {(() => {
+              const opponentNW = opponent?.netWorth ?? 0;
+              const iWon = totalValue > opponentNW;
+              const tied = totalValue === opponentNW;
+              return (
+                <>
+                  <div style={{ fontSize: '4rem', marginBottom: 12 }}>{tied ? '🤝' : iWon ? '🏆' : '💸'}</div>
+                  <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '2rem', marginBottom: 8,
+                    background: tied ? 'none' : iWon ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : 'linear-gradient(135deg, #ef4444, #ec4899)',
+                    WebkitBackgroundClip: tied ? undefined : 'text', WebkitTextFillColor: tied ? 'var(--text-primary)' : 'transparent' }}>
+                    {tied ? 'Draw!' : iWon ? 'You Won!' : 'Defeated!'}
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 20 }}>
+                    {tied ? 'Dead even — impressive!' : iWon
+                      ? `You out-traded ${opponent?.username ?? 'your opponent'}!`
+                      : `${opponent?.username ?? 'Your opponent'} out-traded you!`}
+                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', padding: '14px 20px', marginBottom: 24 }}>
+                    <div>
+                      <p style={{ fontSize: '0.625rem', opacity: 0.6, textTransform: 'uppercase' }}>You</p>
+                      <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: iWon ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                        ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ fontSize: '0.625rem', opacity: 0.6, textTransform: 'uppercase' }}>{opponent?.username ?? 'Opponent'}</p>
+                      <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: !iWon ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                        {opponentNW > 0 ? `$${opponentNW.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '---'}
+                      </p>
+                    </div>
+                  </div>
+                  <button onClick={() => window.history.back()} className="btn btn-primary btn-block">
+                    Back to Profile
+                  </button>
+                </>
+              );
+            })()}
+          </motion.div>
         </motion.div>
       )}
 
