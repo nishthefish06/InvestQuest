@@ -19,7 +19,7 @@ export async function generateGameFeedback(gameType, gameState) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     let prompt = '';
 
@@ -126,7 +126,7 @@ export async function generateSimEvent(playerState) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     const recent = (playerState.recentEvents || []).join(', ') || 'none';
 
     const prompt = `
