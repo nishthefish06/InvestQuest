@@ -172,7 +172,42 @@ export default function Profile() {
     return sum + (stock ? stock.price * h.shares : 0);
   }, 0);
 
-  const calDays = Array.from({ length: 28 }).map((_, i) => ({ day: i + 1, active: i >= 28 - (streak || 0), today: i === 27 }));
+  // Real calendar logic
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const currentDay = now.getDate();
+  
+  // Get first day of month (0 = Sunday, 1 = Monday, etc.)
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  
+  // Get total days in month
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  
+  // Create calendar array with empty cells before month starts, then actual days
+  const calDays = [];
+  
+  // Add empty cells for days before month starts
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    calDays.push({ day: '', active: false, today: false, empty: true });
+  }
+  
+  // Add actual days of the month
+  for (let day = 1; day <= daysInMonth; day++) {
+    const isToday = day === currentDay;
+    // A day is active if it falls within the streak period (counting back from today)
+    const daysAgo = currentDay - day;
+    const isActive = daysAgo >= 0 && daysAgo < (streak || 0);
+    
+    calDays.push({
+      day,
+      active: isActive,
+      today: isToday,
+      empty: false
+    });
+  }
+  
+  const monthName = new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long' });
 
   return (
     <div style={{
@@ -414,7 +449,7 @@ export default function Profile() {
             Streak Calendar
           </div>
           <span style={{ fontWeight: 800, fontSize: '0.875rem', color: headerTeal, opacity: 0.6 }}>
-            28 days
+            {monthName} {currentYear}
           </span>
         </div>
         <div style={{ background: cardSage, padding: 16, borderRadius: 24, marginBottom: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
@@ -423,7 +458,7 @@ export default function Profile() {
               <div key={i} style={{ textAlign: 'center', fontSize: '0.6875rem', color: headerTeal, opacity: 0.8, fontWeight: 800, paddingBottom: 6 }}>{d}</div>
             ))}
             {calDays.map((d, i) => (
-              <div key={i} style={{ aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.625rem', fontWeight: d.today ? 900 : 700, background: d.today ? amber : d.active ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)', color: d.today ? '#fff' : d.active ? headerTeal : 'rgba(26,83,92,0.4)' }}>{d.day}</div>
+              <div key={i} style={{ aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.625rem', fontWeight: d.today ? 900 : 700, background: d.empty ? 'transparent' : d.today ? amber : d.active ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)', color: d.empty ? 'transparent' : d.today ? '#fff' : d.active ? headerTeal : 'rgba(26,83,92,0.4)' }}>{d.day}</div>
             ))}
           </div>
         </div>
