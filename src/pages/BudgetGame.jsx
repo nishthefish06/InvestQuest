@@ -1,15 +1,24 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useGameState } from '../hooks/useGameState';
 import { BUDGET_SCENARIOS, ALL_BUDGET_CATEGORIES } from '../data/skills';
-import { ArrowLeft, ArrowRight, RotateCcw, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, RotateCcw, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
 import GeminiFeedback from '../components/GeminiFeedback';
+import { generateSimEvent } from '../services/gemini';
 
 export default function BudgetGame() {
   const navigate = useNavigate();
   const { budgetScenarioLevel, updateBudgetScenario, addXP } = useGameState();
-  const [phase, setPhase] = useState('intro'); // intro | allocate | result
+  const [phase, setPhase] = useState('intro'); // intro | event | allocate | result
+
+  // ── Life Event (Gemini-generated) state ──────────────────────────────
+  const [simEvent, setSimEvent] = useState(null);
+  const [eventLoading, setEventLoading] = useState(false);
+  const [eventChosen, setEventChosen] = useState(null); // chosen choice index
+  const [recentEvents, setRecentEvents] = useState([]);
+  const [savings, setSavings] = useState(1200);
+  const [debt, setDebt] = useState(4500);
 
   // Get active scenario or fallback to the last one if they beat the game
   const activeScenario = BUDGET_SCENARIOS.find((s) => s.id === budgetScenarioLevel) || BUDGET_SCENARIOS[BUDGET_SCENARIOS.length - 1];
@@ -28,6 +37,40 @@ export default function BudgetGame() {
 
   const [allocations, setAllocations] = useState(defaultAllocations);
   const [result, setResult] = useState(null);
+
+  // Fetch a Gemini-generated life event when entering the event phase
+  const fetchSimEvent = async () => {
+    setEventLoading(true);
+    setSimEvent(null);
+    setEventChosen(null);
+    const event = await generateSimEvent({
+      balance: activeScenario.income - (savings + debt * 0.1),
+      monthlyIncome: activeScenario.income,
+      monthlyExpenses: Math.round(activeScenario.income * 0.75),
+      savings,
+      debt,
+      month: budgetScenarioLevel,
+      recentEvents,
+    });
+    setSimEvent(event);
+    setEventLoading(false);
+  };
+
+  const handleStartEvent = () => {
+    setPhase('event');
+    fetchSimEvent();
+  };
+
+  const handleEventChoice = (choice, idx) => {
+    setEventChosen(idx);
+    // Apply the financial impact
+    if (choice.action === 'savings') setSavings(s => Math.max(0, s + choice.savingsImpact));
+    if (choice.action === 'debt') setDebt(d => d + Math.abs(choice.cost || 200));
+    if (choice.action === 'income') setSavings(s => s + Math.abs(choice.savingsImpact || 0));
+    setRecentEvents(prev => [...prev.slice(-4), simEvent?.title || 'event']);
+    // Advance to budgeting after a short pause
+    setTimeout(() => setPhase('allocate'), 1800);
+  };
 
   // Derive Buckets
   const getBuckets = () => {
@@ -113,10 +156,128 @@ export default function BudgetGame() {
             <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2rem', color: 'var(--accent-cyan)' }}>${activeScenario.income.toLocaleString()}</p>
           </div>
 
-          <button className="btn btn-budget btn-block btn-lg" onClick={() => setPhase('allocate')}>
+          <button className="btn btn-budget btn-block btn-lg" onClick={handleStartEvent}>
             Start Budgeting <ArrowRight size={18} />
           </button>
         </motion.div>
+      </div>
+    );
+  }
+
+  // ── Event Phase (Gemini Life Event) ─────────────────────────────────
+  if (phase === 'event') {
+    const urgencyColors = { immediate: 'var(--accent-red)', this_week: 'var(--accent-orange)', optional: 'var(--accent-cyan)' };
+    const categoryColors = { emergency: '#ef4444', opportunity: '#10b981', routine: '#06b6d4', social: '#a855f7' };
+
+    return (
+      <div className="page-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh', justifyContent: 'center', paddingBottom: 40 }}>
+        <AnimatePresence mode="wait">
+          {eventLoading ? (
+            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ textAlign: 'center', padding: 40 }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: 20, margin: '0 auto 20px',
+                background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 0 30px rgba(6,182,212,0.4)',
+                animation: 'pulse 1.5s ease-in-out infinite',
+              }}>
+                <Sparkles size={28} color="white" />
+              </div>
+              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.1rem', marginBottom: 8 }}>
+                Life happens…
+              </p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <Loader2 size={14} className="animate-spin" /> Gemini is generating your monthly event
+              </p>
+            </motion.div>
+          ) : simEvent ? (
+            <motion.div key="event" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              {/* Header badge */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <div style={{
+                  padding: '4px 10px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.1em',
+                  background: `${categoryColors[simEvent.category] || '#06b6d4'}22`,
+                  color: categoryColors[simEvent.category] || '#06b6d4',
+                  border: `1px solid ${categoryColors[simEvent.category] || '#06b6d4'}44`,
+                }}>
+                  {simEvent.category}
+                </div>
+                <div style={{
+                  padding: '4px 10px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.1em',
+                  background: `${urgencyColors[simEvent.urgency] || 'var(--accent-orange)'}22`,
+                  color: urgencyColors[simEvent.urgency] || 'var(--accent-orange)',
+                  border: `1px solid ${urgencyColors[simEvent.urgency] || 'var(--accent-orange)'}44`,
+                }}>
+                  {simEvent.urgency?.replace('_', ' ')}
+                </div>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  <Sparkles size={11} /> AI Generated
+                </div>
+              </div>
+
+              {/* Event card */}
+              <div className="card" style={{ padding: 24, marginBottom: 20, textAlign: 'center' }}>
+                <div style={{ fontSize: '3rem', marginBottom: 12 }}>{simEvent.emoji || '⚡'}</div>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.375rem', fontWeight: 900, marginBottom: 10 }}>
+                  {simEvent.title}
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: '0.9375rem' }}>
+                  {simEvent.description}
+                </p>
+              </div>
+
+              {/* Choices */}
+              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
+                How do you handle it?
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {(simEvent.choices || []).map((choice, idx) => {
+                  const chosen = eventChosen === idx;
+                  const unchosen = eventChosen !== null && !chosen;
+                  const actionColors = { savings: 'var(--accent-red)', debt: 'var(--accent-orange)', income: 'var(--accent-green)', skip: 'var(--text-secondary)' };
+                  return (
+                    <motion.button key={idx} whileTap={{ scale: 0.98 }}
+                      disabled={eventChosen !== null}
+                      onClick={() => handleEventChoice(choice, idx)}
+                      style={{
+                        background: chosen ? 'rgba(6,182,212,0.12)' : 'var(--bg-card)',
+                        border: `1.5px solid ${chosen ? 'var(--accent-cyan)' : unchosen ? 'var(--border-glass)' : 'var(--border-glass)'}`,
+                        borderRadius: 'var(--radius-md)', padding: '14px 16px',
+                        textAlign: 'left', cursor: eventChosen !== null ? 'default' : 'pointer',
+                        opacity: unchosen ? 0.45 : 1,
+                        transition: 'all 0.2s',
+                      }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{choice.label}</span>
+                        {choice.cost !== 0 && (
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: actionColors[choice.action] || 'var(--accent-orange)' }}>
+                            {choice.action === 'income' ? '+' : '-'}${Math.abs(choice.cost || Math.abs(choice.savingsImpact || 0)).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      {chosen && (
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                          style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>
+                          {choice.consequence}
+                        </motion.p>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {eventChosen !== null && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8125rem', marginTop: 16 }}>
+                  Moving to your budget…
+                </motion.p>
+              )}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
     );
   }
@@ -204,9 +365,12 @@ export default function BudgetGame() {
 
   // Active Map of Categories to render grouped
   const renderGroup = (title, prefix, color, targetAmt) => {
-    const activeAllocations = Object.entries(allocations).filter(([k]) => k.startsWith(prefix));
-    const groupTotal = activeAllocations.reduce((sum, [, val]) => sum + val, 0);
     const availableCats = ALL_BUDGET_CATEGORIES.filter(c => c.type === prefix);
+    const mandatoryTotal = activeScenario.mandatory.reduce((sum, m) => {
+      const key = `${prefix}_${m.id}`;
+      return key in allocations ? sum + m.amount : sum;
+    }, 0);
+    const choicesTotal = availableCats.reduce((sum, cat) => sum + (allocations[cat.id] || 0), 0);
 
     return (
       <div style={{ marginBottom: 24 }}>
@@ -217,8 +381,7 @@ export default function BudgetGame() {
 
         {/* Render mandatory bills for this group first */}
         {activeScenario.mandatory.map(m => {
-          if ((prefix === 'need' && m.id !== 'repair' && !m.isSurprise) || (prefix === 'want' && m.isSurprise)) return null; // Very basic bucketing for demo
-          if (!allocations[`${prefix}_${m.id}`] && allocations[`${prefix}_${m.id}`] !== 0) return null;
+          if (!((`${prefix}_${m.id}`) in allocations)) return null;
 
           return (
             <div key={m.id} className="budget-category" style={{ background: m.isSurprise ? 'rgba(239,68,68,0.1)' : 'var(--bg-card)' }}>
@@ -253,8 +416,19 @@ export default function BudgetGame() {
           </div>
         ))}
 
-        <div style={{ textAlign: 'right', fontSize: '0.8125rem', fontWeight: 600, color: groupTotal > targetAmt ? 'var(--accent-red)' : 'var(--text-secondary)', marginTop: 8 }}>
-          Group Total: ${groupTotal} / ${targetAmt}
+        <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginTop: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Fixed costs</span>
+            <span>${mandatoryTotal}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Your choices</span>
+            <span>${choicesTotal}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: (mandatoryTotal + choicesTotal) > targetAmt ? 'var(--accent-red)' : 'var(--text-primary)', marginTop: 4, borderTop: '1px solid var(--border-glass)', paddingTop: 4 }}>
+            <span style={{ fontWeight: 800 }}>Total</span>
+            <span style={{ fontWeight: 800 }}>${mandatoryTotal + choicesTotal} / ${targetAmt}</span>
+          </div>
         </div>
       </div>
     );

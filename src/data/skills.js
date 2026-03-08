@@ -60,25 +60,25 @@ export const QUESTS = {
 // ── QUIZ DATA PER WORLD ─────────────────────────────────
 export const QUIZ_DATA = {
   budget: [
-    { question: 'The 50/30/20 rule suggests what % for needs?', options: ['50%', '30%', '20%', '40%'], correct: 0, xp: 15 },
-    { question: 'What is an emergency fund?', options: ['3-6 months of expenses saved', 'A credit card for emergencies', 'Money in stocks', 'A type of insurance'], correct: 0, xp: 15 },
-    { question: 'Which debt payoff method targets smallest balances first?', options: ['Debt Avalanche', 'Debt Snowball', 'Debt Consolidation', 'Debt Spiral'], correct: 1, xp: 20 },
-    { question: 'What hurts your credit score the most?', options: ['Checking your score', 'Late payments', 'Having multiple cards', 'Paying in full'], correct: 1, xp: 15 },
-    { question: 'Which is a "need" vs a "want"?', options: ['Netflix subscription', 'Designer sneakers', 'Rent payment', 'Concert tickets'], correct: 2, xp: 10 },
+    { question: 'The 50/30/20 rule suggests what % for needs?', options: ['20%', '30%', '50%', '40%'], correct: 2, xp: 15 },
+    { question: 'What is an emergency fund?', options: ['A credit card for emergencies', 'Money invested in stocks', '3-6 months of expenses saved', 'A type of insurance'], correct: 2, xp: 15 },
+    { question: 'Which debt payoff method targets smallest balances first?', options: ['Debt Snowball', 'Debt Avalanche', 'Debt Consolidation', 'Debt Spiral'], correct: 0, xp: 20 },
+    { question: 'What hurts your credit score the most?', options: ['Having multiple cards', 'Checking your score', 'Paying in full monthly', 'Late payments'], correct: 3, xp: 15 },
+    { question: 'Which is a "need" vs a "want"?', options: ['Netflix subscription', 'Concert tickets', 'Designer sneakers', 'Rent payment'], correct: 3, xp: 10 },
   ],
   stocks: [
-    { question: 'What does IPO stand for?', options: ['Initial Public Offering', 'Internal Profit Operation', 'Investment Portfolio Option', 'Index Price Order'], correct: 0, xp: 15 },
-    { question: 'A "bear market" means prices are...', options: ['Rising', 'Falling', 'Stable', 'Volatile'], correct: 1, xp: 15 },
-    { question: 'What does P/E ratio measure?', options: ['Profit / Equity', 'Price / Earnings', 'Portfolio / Expenses', 'Potential / Estimate'], correct: 1, xp: 20 },
-    { question: 'Diversification helps reduce...', options: ['Returns', 'Risk', 'Taxes', 'Volume'], correct: 1, xp: 15 },
-    { question: 'What is a dividend?', options: ['A stock split', 'A company\'s profit paid to shareholders', 'A trading fee', 'A type of bond'], correct: 1, xp: 15 },
+    { question: 'What does IPO stand for?', options: ['Index Price Order', 'Internal Profit Operation', 'Investment Portfolio Option', 'Initial Public Offering'], correct: 3, xp: 15 },
+    { question: 'A "bear market" means prices are...', options: ['Stable', 'Volatile', 'Rising', 'Falling'], correct: 3, xp: 15 },
+    { question: 'What does P/E ratio measure?', options: ['Potential / Estimate', 'Profit / Equity', 'Price / Earnings', 'Portfolio / Expenses'], correct: 2, xp: 20 },
+    { question: 'Diversification helps reduce...', options: ['Volume', 'Returns', 'Taxes', 'Risk'], correct: 3, xp: 15 },
+    { question: "What is a dividend?", options: ['A trading fee', 'A stock split', 'A type of bond', "A company's profit paid to shareholders"], correct: 3, xp: 15 },
   ],
   crypto: [
-    { question: 'What technology powers Bitcoin?', options: ['AI', 'Blockchain', 'Cloud computing', 'Quantum computing'], correct: 1, xp: 15 },
-    { question: 'What is a "rug pull" in crypto?', options: ['A market correction', 'Developers abandoning a project & taking funds', 'A mining technique', 'A trading strategy'], correct: 1, xp: 20 },
-    { question: '"Not your keys, not your coins" refers to...', options: ['Mining difficulty', 'Wallet security & ownership', 'Trading limits', 'Token supply'], correct: 1, xp: 15 },
-    { question: 'What is DeFi?', options: ['Definite Finance', 'Decentralized Finance', 'Deficit Financing', 'Default Insurance'], correct: 1, xp: 15 },
-    { question: 'Which is the largest crypto by market cap?', options: ['Ethereum', 'Solana', 'Bitcoin', 'Dogecoin'], correct: 2, xp: 10 },
+    { question: 'What technology powers Bitcoin?', options: ['Quantum computing', 'AI', 'Cloud computing', 'Blockchain'], correct: 3, xp: 15 },
+    { question: 'What is a "rug pull" in crypto?', options: ['A trading strategy', 'A market correction', 'A mining technique', 'Developers abandoning a project & taking funds'], correct: 3, xp: 20 },
+    { question: '"Not your keys, not your coins" refers to...', options: ['Trading limits', 'Mining difficulty', 'Token supply', 'Wallet security & ownership'], correct: 3, xp: 15 },
+    { question: 'What is DeFi?', options: ['Definite Finance', 'Default Insurance', 'Deficit Financing', 'Decentralized Finance'], correct: 3, xp: 15 },
+    { question: 'Which is the largest crypto by market cap?', options: ['Dogecoin', 'Solana', 'Ethereum', 'Bitcoin'], correct: 3, xp: 10 },
   ],
 };
 
@@ -96,21 +96,26 @@ export const SIM_STOCKS = [
   { ticker: 'FIZZ', name: 'FizzBuzz Cola', logo: '🥤', price: 61.25, change: 0.18, changePct: 0.29 },
 ];
 
-export function generatePriceHistory(basePrice, changePct = 0) {
+export function generatePriceHistory(basePrice, changePct = 0, seed = 42) {
+  // Seeded pseudo-random — chart shape stays stable across re-renders
+  // Pass a different seed only if you want a fresh shape
+  let s = seed;
+  const rand = () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 0xffffffff;
+  };
+
   const data = [];
   const days = 30;
-  // Start price derived from current price and the % change so the chart ends at basePrice
   const startPrice = basePrice / (1 + changePct / 100);
-  const drift = (basePrice - startPrice) / days; // per-day drift toward current price
+  const drift = (basePrice - startPrice) / days;
   let p = startPrice;
   for (let i = 0; i < days; i++) {
-    // Add the drift + small random noise (capped so it doesn't overwhelm the trend)
-    const noise = (Math.random() - 0.5) * (basePrice * 0.005);
+    const noise = (rand() - 0.5) * (basePrice * 0.005);
     p += drift + noise;
-    p = Math.max(p, startPrice * 0.9); // floor to prevent crazy dips
+    p = Math.max(p, startPrice * 0.9);
     data.push({ day: i, price: p });
   }
-  // Ensure the last point is exactly the current price
   data[days - 1].price = basePrice;
   return data;
 }

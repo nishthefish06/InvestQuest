@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameState } from '../hooks/useGameState';
 import { SIM_STOCKS, generatePriceHistory } from '../data/skills';
-import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, X, Briefcase, BarChart3, Users, Swords } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, X, Briefcase, BarChart3, Users, Swords, Sparkles, Loader2 } from 'lucide-react';
+import { generateGameFeedback } from '../services/gemini';
 
 
 function MiniChart({ data, color }) {
@@ -19,11 +20,12 @@ function MiniChart({ data, color }) {
   );
 }
 
-function TradeModal({ stock, holding, onClose, onTrade }) {
+function TradeModal({ stock, holding, stockCash, onClose, onTrade }) {
   const sharesOwned = holding ? holding.shares : 0;
   const [type, setType] = useState('BUY');
   const [shares, setShares] = useState(1);
   const cost = shares * stock.price;
+  const cantAfford = type === 'BUY' && cost > stockCash;
 
   const handleSetType = (t) => {
     if (t === 'SELL' && sharesOwned === 0) return; // can't sell what you don't own
@@ -97,10 +99,16 @@ function TradeModal({ stock, holding, onClose, onTrade }) {
           </div>
         </div>
 
+        {cantAfford && (
+          <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--accent-red)', fontWeight: 600, marginBottom: 10 }}>
+            ⚠️ Not enough cash — you have ${stockCash.toLocaleString('en-US', { maximumFractionDigits: 0 })} available
+          </p>
+        )}
         <button className="btn btn-block btn-lg"
-          onClick={() => { onTrade(stock.ticker, type, shares, stock.price); onClose(); }}
-          style={{ background: type === 'BUY' ? 'linear-gradient(135deg, #10b981, #06b6d4)' : 'linear-gradient(135deg, #ef4444, #ec4899)', color: 'white', fontWeight: 700, boxShadow: type === 'BUY' ? '0 0 20px rgba(16,185,129,0.3)' : '0 0 20px rgba(239,68,68,0.3)' }}>
-          {type === 'BUY' ? '🛒' : '💰'} {type} {shares} {shares === 1 ? 'Share' : 'Shares'}
+          disabled={cantAfford}
+          onClick={() => { if (!cantAfford) { onTrade(stock.ticker, type, shares, stock.price); onClose(); } }}
+          style={{ background: cantAfford ? 'rgba(255,255,255,0.08)' : type === 'BUY' ? 'linear-gradient(135deg, #10b981, #06b6d4)' : 'linear-gradient(135deg, #ef4444, #ec4899)', color: cantAfford ? 'var(--text-muted)' : 'white', fontWeight: 700, boxShadow: cantAfford ? 'none' : type === 'BUY' ? '0 0 20px rgba(16,185,129,0.3)' : '0 0 20px rgba(239,68,68,0.3)', cursor: cantAfford ? 'not-allowed' : 'pointer', opacity: cantAfford ? 0.6 : 1 }}>
+          {cantAfford ? '🚫 Insufficient Funds' : `${type === 'BUY' ? '🛒' : '💰'} ${type} ${shares} ${shares === 1 ? 'Share' : 'Shares'}`}
         </button>
       </motion.div>
     </motion.div>
@@ -119,13 +127,62 @@ export default function Arena() {
   const [gameStarted, setGameStarted] = useState(false);
   const [isMarketHost, setIsMarketHost] = useState(false); // First player becomes market host
 
+  // ── Gemini Portfolio Analysis ───────────────────────────────────────
+  const [portfolioAnalysis, setPortfolioAnalysis] = useState('');
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisKey, setAnalysisKey] = useState(0); // bump to re-analyze
+  const lastAnalyzedRef = useRef('');
+
+  const fetchPortfolioAnalysis = async () => {
+    if (holdings.length === 0) return;
+    setAnalysisLoading(true);
+    setPortfolioAnalysis('');
+    const holdingsSummary = holdings.map(h => {
+      const stock = marketStocks.find(s => s.ticker === h.ticker);
+      const currentVal = stock ? stock.price * h.shares : 0;
+      const pnl = stock ? ((stock.price - h.avgCost) / h.avgCost * 100).toFixed(1) : '0';
+      return `${h.ticker} (${h.shares} shares, ${pnl}% P&L)`;
+    }).join(', ');
+    const totalPnl = ((totalValue - (stockStartingAmount || 100000)) / (stockStartingAmount || 100000) * 100).toFixed(1);
+    const feedback = await generateGameFeedback('portfolio_analysis', {
+      holdings: holdingsSummary,
+      totalValue: totalValue.toFixed(0),
+      startingAmount: stockStartingAmount || 100000,
+      totalPnl,
+      cashRemaining: stockCash.toFixed(0),
+      tradeCount: holdings.length,
+    });
+    setPortfolioAnalysis(feedback);
+    setAnalysisLoading(false);
+  };
+
+  // Auto-fetch when switching to portfolio tab (once per holdings change)
+  useEffect(() => {
+    if (tab !== 'portfolio' || holdings.length === 0) return;
+    const key = holdings.map(h => `${h.ticker}:${h.shares}`).join(',');
+    if (key === lastAnalyzedRef.current && portfolioAnalysis && !analysisLoading) return;
+    lastAnalyzedRef.current = key;
+    fetchPortfolioAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, analysisKey]);
+
   const formatTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+  // Stable seed per ticker so chart shape doesn't regenerate on every 4s price tick.
+  // We only recalculate when the user fast-forwards (skipTime changes prices significantly).
+  const seedMapRef = useRef({});
   const priceHistories = useMemo(() => {
     const map = {};
-    marketStocks.forEach((s) => { map[s.ticker] = generatePriceHistory(s.price, s.changePct); });
+    marketStocks.forEach((s) => {
+      // Assign a stable seed the first time we see a ticker; keep it forever
+      if (!seedMapRef.current[s.ticker]) {
+        seedMapRef.current[s.ticker] = s.ticker.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+      }
+      map[s.ticker] = generatePriceHistory(s.price, s.changePct, seedMapRef.current[s.ticker]);
+    });
     return map;
-  }, [marketStocks]); // re-calc when prices change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marketStocks.map(s => s.price.toFixed(0)).join(',')]); // only recalc on meaningful price shifts
 
   const holdingsValue = holdings.reduce((sum, h) => {
     const stock = marketStocks.find((s) => s.ticker === h.ticker);
@@ -265,14 +322,13 @@ export default function Arena() {
   const handleTrade = (ticker, type, shares, price) => {
     executeTrade(ticker, type, shares, price);
     addXP(15);
-    // Broadcast the trade so the opponent's net worth updates immediately
+    // Broadcast the trade so the opponent's net worth updates immediately.
+    // totalValue is cash + holdings at current render — apply this trade's cash delta
+    // to get the correct post-trade number without relying on stale state.
     if (matchId && pusherClient) {
-      const updatedHoldingsValue = holdings.reduce((sum, h) => {
-        const s = marketStocks.find(m => m.ticker === h.ticker);
-        return sum + (s ? s.price * h.shares : 0);
-      }, 0);
-      const tradeNetWorth = stockCash + updatedHoldingsValue + (type === 'BUY' ? 0 : price * shares) - (type === 'BUY' ? price * shares : 0);
-      triggerPusherEvent(`arena-${matchId}`, 'trade-event', { username, netWorth: tradeNetWorth, ticker, type, shares }).catch(() => {});
+      const tradeDelta = type === 'BUY' ? -(price * shares) : (price * shares);
+      const immediateNetWorth = totalValue + tradeDelta;
+      triggerPusherEvent(`arena-${matchId}`, 'trade-event', { username, netWorth: immediateNetWorth, ticker, type, shares }).catch(() => { });
     }
   };
 
@@ -452,7 +508,7 @@ export default function Arena() {
 
       {/* Multiplayer Split Screen Navbar */}
       {matchId && (
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} 
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
           style={{ background: 'var(--gradient-purple)', padding: '12px 16px', borderRadius: 'var(--radius-lg)', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(168,85,247,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}>
           <div>
             <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', opacity: 0.8, letterSpacing: '0.05em' }}>You</p>
@@ -494,9 +550,11 @@ export default function Arena() {
               return (
                 <>
                   <div style={{ fontSize: '4rem', marginBottom: 12 }}>{tied ? '🤝' : iWon ? '🏆' : '💸'}</div>
-                  <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '2rem', marginBottom: 8,
+                  <h2 style={{
+                    fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '2rem', marginBottom: 8,
                     background: tied ? 'none' : iWon ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : 'linear-gradient(135deg, #ef4444, #ec4899)',
-                    WebkitBackgroundClip: tied ? undefined : 'text', WebkitTextFillColor: tied ? 'var(--text-primary)' : 'transparent' }}>
+                    WebkitBackgroundClip: tied ? undefined : 'text', WebkitTextFillColor: tied ? 'var(--text-primary)' : 'transparent'
+                  }}>
                     {tied ? 'Draw!' : iWon ? 'You Won!' : 'Defeated!'}
                   </h2>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 20 }}>
@@ -588,7 +646,6 @@ export default function Arena() {
         </div>
       )}
 
-      {/* Portfolio View */}
       {tab === 'portfolio' && (
         <div>
           {holdings.length === 0 ? (
@@ -598,35 +655,79 @@ export default function Arena() {
               <p style={{ fontSize: '0.8125rem' }}>Go to the Market tab to make your first trade!</p>
             </div>
           ) : (
-            holdings.map((h, i) => {
-              const stock = marketStocks.find((s) => s.ticker === h.ticker);
-              if (!stock) return null;
-              const currentVal = stock.price * h.shares;
-              const costBasis = h.avgCost * h.shares;
-              const pnl = currentVal - costBasis;
-              const pnlPct = ((pnl / costBasis) * 100).toFixed(1);
-              return (
-                <motion.div key={h.ticker} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                  className="card card-interactive" onClick={() => setSelectedStock(stock)}
-                  style={{ padding: 16, marginBottom: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: '1.25rem' }}>{stock.logo}</span>
-                      <div>
-                        <p style={{ fontWeight: 700, fontSize: '0.875rem' }}>{stock.ticker}</p>
-                        <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>{h.shares} shares @ ${h.avgCost.toFixed(2)}</p>
+            <>
+              {holdings.map((h, i) => {
+                const stock = marketStocks.find((s) => s.ticker === h.ticker);
+                if (!stock) return null;
+                const currentVal = stock.price * h.shares;
+                const costBasis = h.avgCost * h.shares;
+                const pnl = currentVal - costBasis;
+                const pnlPct = ((pnl / costBasis) * 100).toFixed(1);
+                return (
+                  <motion.div key={h.ticker} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                    className="card card-interactive" onClick={() => setSelectedStock(stock)}
+                    style={{ padding: 16, marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: '1.25rem' }}>{stock.logo}</span>
+                        <div>
+                          <p style={{ fontWeight: 700, fontSize: '0.875rem' }}>{stock.ticker}</p>
+                          <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>{h.shares} shares @ ${h.avgCost.toFixed(2)}</p>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontWeight: 700, fontFamily: 'var(--font-display)' }}>${currentVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        <p style={{ fontSize: '0.75rem', fontWeight: 600, color: pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                          {pnl >= 0 ? '+' : ''}{pnlPct}% (${Math.abs(pnl).toFixed(2)})
+                        </p>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontWeight: 700, fontFamily: 'var(--font-display)' }}>${currentVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                      <p style={{ fontSize: '0.75rem', fontWeight: 600, color: pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
-                        {pnl >= 0 ? '+' : ''}{pnlPct}% (${Math.abs(pnl).toFixed(2)})
-                      </p>
+                  </motion.div>
+                );
+              })}
+
+              {/* Gemini Portfolio Analysis Card */}
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                style={{
+                  marginTop: 16, padding: 16, borderRadius: 16,
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(139,92,246,0.3)',
+                  boxShadow: '0 4px 24px -4px rgba(139,92,246,0.15)',
+                  position: 'relative', overflow: 'hidden',
+                }}>
+                <div style={{
+                  position: 'absolute', top: -40, left: -40, right: -40, height: 80,
+                  background: 'linear-gradient(180deg, rgba(139,92,246,0.15) 0%, transparent 100%)',
+                  filter: 'blur(16px)', zIndex: 0, pointerEvents: 'none',
+                }} />
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ background: 'var(--gradient-primary)', borderRadius: '50%', padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Sparkles size={14} color="white" />
+                      </div>
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.875rem', background: 'var(--gradient-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        AI Portfolio Coach
+                      </span>
                     </div>
+                    <button onClick={() => { lastAnalyzedRef.current = ''; setAnalysisKey(k => k + 1); }}
+                      style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px 8px', borderRadius: 8, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', cursor: 'pointer' }}>
+                      Refresh ↺
+                    </button>
                   </div>
-                </motion.div>
-              );
-            })
+                  {analysisLoading ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)' }}>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span style={{ fontSize: '0.875rem' }}>Analyzing your portfolio…</span>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '0.9375rem', lineHeight: 1.65, color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
+                      {portfolioAnalysis || 'Tap Refresh to get your AI analysis.'}
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            </>
           )}
         </div>
       )}
@@ -677,7 +778,7 @@ export default function Arena() {
       {/* Trade Modal */}
       <AnimatePresence>
         {selectedStock && (
-          <TradeModal stock={selectedStock} holding={holdings.find(h => h.ticker === selectedStock.ticker)} onClose={() => setSelectedStock(null)} onTrade={handleTrade} />
+          <TradeModal stock={selectedStock} holding={holdings.find(h => h.ticker === selectedStock.ticker)} stockCash={stockCash} onClose={() => setSelectedStock(null)} onTrade={handleTrade} />
         )}
       </AnimatePresence>
     </div>
