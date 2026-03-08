@@ -40,7 +40,7 @@ function StreamingText({ text, onDone, speed = 38 }) {
       {!done && (
         <span style={{
           display: 'inline-block', width: 2, height: '1em',
-          background: '#a855f7', marginLeft: 3, verticalAlign: 'middle',
+          background: '#f39c12', marginLeft: 3, verticalAlign: 'middle',
           animation: 'iq-blink 0.6s step-end infinite'
         }} />
       )}
@@ -60,9 +60,9 @@ function Bubble({ block, onDone, isActive }) {
       {/* Avatar */}
       <div style={{
         width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-        background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+        background: 'linear-gradient(135deg, #f39c12, #d68910)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '1rem', boxShadow: '0 0 10px rgba(168,85,247,0.35)',
+        fontSize: '1rem', boxShadow: '0 0 10px rgba(243,156,18,0.35)',
         marginTop: 2
       }}>
         {block.emoji || '✨'}
@@ -182,12 +182,12 @@ function PollBlock({ block, onDone }) {
             style={{
               padding: '8px 16px', borderRadius: 20,
               border: picked === i
-                ? '1.5px solid #a855f7'
+                ? '1.5px solid #f39c12'
                 : picked !== null
                   ? '1.5px solid rgba(255,255,255,0.08)'
                   : '1.5px solid rgba(255,255,255,0.15)',
-              background: picked === i ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.05)',
-              color: picked === i ? '#c084fc' : picked !== null ? 'var(--text-muted)' : 'var(--text-secondary)',
+              background: picked === i ? 'rgba(243,156,18,0.15)' : 'rgba(255,255,255,0.05)',
+              color: picked === i ? '#f39c12' : picked !== null ? 'var(--text-muted)' : 'var(--text-secondary)',
               fontSize: '0.875rem', fontWeight: 700,
               cursor: picked !== null ? 'default' : 'pointer',
               transition: 'all 0.2s',
@@ -210,14 +210,14 @@ function PollBlock({ block, onDone }) {
           >
             <div style={{
               width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-              background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              background: 'linear-gradient(135deg, #f39c12, #d68910)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '0.875rem'
             }}>✨</div>
             <div style={{
               flex: 1,
-              background: 'rgba(168,85,247,0.08)',
-              border: '1px solid rgba(168,85,247,0.2)',
+              background: 'rgba(243,156,18,0.08)',
+              border: '1px solid rgba(243,156,18,0.2)',
               borderRadius: '4px 14px 14px 14px',
               padding: '10px 14px',
               fontSize: '0.875rem', lineHeight: 1.55,
@@ -298,16 +298,16 @@ function LessonScreen({ quest, blocks, isLoading, onStartQuiz, onSkip, onClose }
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
-            background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+            background: 'linear-gradient(135deg, #f39c12, #d68910)',
             borderRadius: 8, padding: '4px 6px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 12px rgba(168,85,247,0.4)'
+            boxShadow: '0 0 12px rgba(243,156,18,0.4)'
           }}>
             <Sparkles size={14} color="white" />
           </div>
           <span style={{
             fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '0.8125rem',
-            background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+            background: 'linear-gradient(135deg, #f39c12, #d68910)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
           }}>
             Gemini AI Tutor
@@ -338,7 +338,7 @@ function LessonScreen({ quest, blocks, isLoading, onStartQuiz, onSkip, onClose }
             <div key={i} style={{
               height: 3, borderRadius: 100, transition: 'all 0.4s',
               flex: i < visibleCount ? 2 : 1,
-              background: i < visibleCount ? '#a855f7' : 'rgba(255,255,255,0.1)',
+              background: i < visibleCount ? '#f39c12' : 'rgba(255,255,255,0.1)',
             }} />
           ))}
         </div>
@@ -405,9 +405,9 @@ function LoadingQuiz() {
     }}>
       <div style={{
         width: 64, height: 64, borderRadius: 20,
-        background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+        background: 'linear-gradient(135deg, #f39c12, #d68910)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 0 30px rgba(168,85,247,0.5)',
+        boxShadow: '0 0 30px rgba(243,156,18,0.5)',
         animation: 'iq-pulse 1.5s ease-in-out infinite'
       }}>
         <Sparkles size={28} color="white" />
@@ -530,7 +530,7 @@ export default function QuestPlay() {
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200 }}
             style={{
               width: 100, height: 100, borderRadius: '50%',
-              background: score >= Math.ceil(total * 0.6) ? 'linear-gradient(135deg, #10b981, #06b6d4)' : 'linear-gradient(135deg, #f59e0b, #ef4444)',
+              background: score >= Math.ceil(total * 0.6) ? 'linear-gradient(135deg, #10b981, #385c43)' : 'linear-gradient(135deg, #f59e0b, #ef4444)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', marginBottom: 24
             }}>
             {score >= Math.ceil(total * 0.6) ? '🏆' : '💪'}
@@ -588,7 +588,7 @@ export default function QuestPlay() {
                   if (i === current.correct) { borderColor = 'var(--accent-green)'; bg = 'rgba(16,185,129,0.1)'; }
                   else if (i === selected) { borderColor = 'var(--accent-red)'; bg = 'rgba(239,68,68,0.1)'; }
                 } else if (i === selected) {
-                  borderColor = 'var(--accent-purple)'; bg = 'rgba(168,85,247,0.1)';
+                  borderColor = 'var(--accent-purple)'; bg = 'rgba(243,156,18,0.1)';
                 }
                 return (
                   <motion.div key={i} whileTap={{ scale: 0.98 }} onClick={() => handleSelect(i)}

@@ -2,7 +2,7 @@
 export const WORLDS = [
   {
     id: 'budget', name: 'Budget Boardwalk', icon: '🏖️',
-    color: '#06b6d4', gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+    color: '#385c43', gradient: 'linear-gradient(135deg, #385c43, #2d4737)',
     desc: 'Master daily budgeting, saving & emergencies',
     multiplayer: false, tagline: 'Simulate real life finances',
     mapImage: '/budget-map.png'
@@ -137,18 +137,18 @@ export const BUDGET_SCENARIOS = [
     id: 1, title: 'Month 1: The Basics', income: 4000,
     desc: 'You just got your first paycheck of $4,000! See if you can allocate your funds into the perfect 50/30/20 split.',
     mandatory: [
-      { id: 'rent', name: 'Rent & Utilities', amount: 1200, icon: '🏠' },
+      { id: 'rent', name: 'Rent & Utilities', amount: 1000, icon: '🏠' },
       { id: 'car', name: 'Car Payment', amount: 350, icon: '🚗' },
-      { id: 'groceries', name: 'Basic Groceries', amount: 400, icon: '🛒' }
+      { id: 'groceries', name: 'Basic Groceries', amount: 250, icon: '🛒' }
     ]
   },
   {
     id: 2, title: 'Month 2: The Surprise Bill', income: 4200,
     desc: 'You picked up an extra shift, but your car broke down! You HAVE to cover a $600 repair bill this month.',
     mandatory: [
-      { id: 'rent', name: 'Rent & Utilities', amount: 1200, icon: '🏠' },
+      { id: 'rent', name: 'Rent & Utilities', amount: 1000, icon: '🏠' },
       { id: 'car', name: 'Car Payment', amount: 350, icon: '🚗' },
-      { id: 'groceries', name: 'Basic Groceries', amount: 450, icon: '🛒' },
+      { id: 'groceries', name: 'Basic Groceries', amount: 250, icon: '🛒' },
       { id: 'repair', name: 'Surprise Car Repair', amount: 600, icon: '🔧', isSurprise: true }
     ]
   },
@@ -156,9 +156,9 @@ export const BUDGET_SCENARIOS = [
     id: 3, title: 'Month 3: Treat Yourself?', income: 3800,
     desc: 'Your income was slightly lower this month. You really want that $400 concert ticket, but will it fit your 30% Wants budget?',
     mandatory: [
-      { id: 'rent', name: 'Rent & Utilities', amount: 1200, icon: '🏠' },
+      { id: 'rent', name: 'Rent & Utilities', amount: 1000, icon: '🏠' },
       { id: 'car', name: 'Car Payment', amount: 350, icon: '🚗' },
-      { id: 'groceries', name: 'Basic Groceries', amount: 450, icon: '🛒' }
+      { id: 'groceries', name: 'Basic Groceries', amount: 250, icon: '🛒' }
     ]
   }
 ];

@@ -10,7 +10,7 @@ import { generateSimEvent } from '../services/gemini';
 export default function BudgetGame() {
   const navigate = useNavigate();
   const { budgetScenarioLevel, updateBudgetScenario, addXP } = useGameState();
-  const [phase, setPhase] = useState('intro'); // intro | event | allocate | result
+  const [phase, setPhase] = useState('intro'); // intro | dashboard | event | allocate | result
 
   // ── Life Event (Gemini-generated) state ──────────────────────────────
   const [simEvent, setSimEvent] = useState(null);
@@ -57,6 +57,10 @@ export default function BudgetGame() {
   };
 
   const handleStartEvent = () => {
+    setPhase('dashboard');
+  };
+
+  const handleContinueToEvent = () => {
     setPhase('event');
     fetchSimEvent();
   };
@@ -104,6 +108,12 @@ export default function BudgetGame() {
   };
 
   const evaluateBudget = () => {
+    // Prevent submission if budget is over
+    if (remaining < 0) {
+      alert('❌ Budget Error: You have allocated more than your income! Please reduce your spending to stay within your budget.');
+      return;
+    }
+
     const nPct = (needs / activeScenario.income) * 100;
     const wPct = (wants / activeScenario.income) * 100;
     const sPct = (saves / activeScenario.income) * 100;
@@ -111,10 +121,7 @@ export default function BudgetGame() {
     let score = 100;
     let feedback = [];
 
-    if (remaining < 0) {
-      score -= 50;
-      feedback.push('You overspent your income! This leads straight to credit card debt.');
-    } else if (remaining > 50) {
+    if (remaining > 50) {
       score -= 10;
       feedback.push('You left money unassigned. Every dollar needs a job (even if that job is savings).');
     }
@@ -145,15 +152,46 @@ export default function BudgetGame() {
   // ── Render ──────────────────────────────────────────────────────────
   if (phase === 'intro') {
     return (
-      <div className="page-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh', justifyContent: 'center' }}>
+      <div className="page-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh', justifyContent: 'center', position: 'relative' }}>
+        {/* Back button */}
+        <button 
+          onClick={() => navigate('/world/budget')}
+          style={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: 'var(--bg-card)',
+            border: '1.5px solid var(--border-glass)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            zIndex: 10,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--bg-card-hover)';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'var(--bg-card)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          <ArrowLeft size={20} color="var(--text-primary)" />
+        </button>
+        
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ padding: 24, textAlign: 'center' }}>
           <div style={{ fontSize: '3rem', marginBottom: 16 }}>{activeScenario.id === 1 ? '🏖️' : '🚨'}</div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 800, marginBottom: 12 }}>{activeScenario.title}</h1>
           <p style={{ color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>{activeScenario.desc}</p>
 
-          <div style={{ background: 'rgba(6,182,212,0.1)', padding: 16, borderRadius: 12, marginBottom: 24 }}>
+          <div style={{ background: 'rgba(82,128,94,0.1)', padding: 16, borderRadius: 12, marginBottom: 24 }}>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your Income</p>
-            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2rem', color: 'var(--accent-cyan)' }}>${activeScenario.income.toLocaleString()}</p>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2rem', color: '#52805e' }}>${activeScenario.income.toLocaleString()}</p>
           </div>
 
           <button className="btn btn-budget btn-block btn-lg" onClick={handleStartEvent}>
@@ -164,13 +202,101 @@ export default function BudgetGame() {
     );
   }
 
+  // ── Dashboard Phase (Show Financial Overview) ──────────────────────
+  if (phase === 'dashboard') {
+    return (
+      <div className="page-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh', justifyContent: 'center', paddingBottom: 40, position: 'relative' }}>
+        <button 
+          onClick={() => navigate('/world/budget')}
+          style={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: 'var(--bg-card)',
+            border: '1.5px solid var(--border-glass)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            zIndex: 10,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--bg-card-hover)';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'var(--bg-card)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          <ArrowLeft size={20} color="var(--text-primary)" />
+        </button>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 900, textAlign: 'center', marginBottom: 24 }}>Your Financial Dashboard</h1>
+          
+          <div className="card" style={{ padding: 24, marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border-glass)' }}>
+              <div>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Monthly Income</p>
+                <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.75rem', color: '#52805e' }}>${activeScenario.income.toLocaleString()}</p>
+              </div>
+              <div style={{ fontSize: '2.5rem' }}>💵</div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ background: 'rgba(82,128,94,0.1)', padding: 14, borderRadius: 12, border: '1px solid rgba(82,128,94,0.2)' }}>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>💰 Savings</p>
+                <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.375rem', color: '#52805e' }}>${savings.toLocaleString()}</p>
+              </div>
+              <div style={{ background: 'rgba(220,38,38,0.1)', padding: 14, borderRadius: 12, border: '1px solid rgba(220,38,38,0.2)' }}>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>💳 Debt</p>
+                <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.375rem', color: '#dc2626' }}>${debt.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="card" style={{ padding: 20, marginBottom: 24, background: 'rgba(6,182,212,0.08)', border: '1.5px solid rgba(6,182,212,0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <AlertCircle size={18} color="var(--accent-cyan)" />
+              <p style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--accent-cyan)' }}>A new month begins...</p>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>Life is unpredictable. An unexpected event is waiting for you. Are you ready to handle it?</p>
+          </div>
+
+          <button className="btn btn-budget btn-block btn-lg" onClick={handleContinueToEvent}>
+            Continue to Event <ArrowRight size={18} />
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   // ── Event Phase (Gemini Life Event) ─────────────────────────────────
   if (phase === 'event') {
-    const urgencyColors = { immediate: 'var(--accent-red)', this_week: 'var(--accent-orange)', optional: 'var(--accent-cyan)' };
-    const categoryColors = { emergency: '#ef4444', opportunity: '#10b981', routine: '#06b6d4', social: '#a855f7' };
+    const urgencyColors = { immediate: '#dc2626', this_week: 'var(--accent-orange)', optional: 'var(--accent-cyan)' };
+    const categoryColors = { emergency: '#dc2626', opportunity: '#52805e', routine: '#385c43', social: '#f39c12' };
 
     return (
       <div className="page-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh', justifyContent: 'center', paddingBottom: 40, position: 'relative' }}>
+        {/* Remaining Cash Display */}
+        <div style={{
+          position: 'absolute',
+          top: 16,
+          right: 60,
+          textAlign: 'right',
+          zIndex: 10,
+        }}>
+          <p style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 2 }}>Remaining Cash</p>
+          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.125rem', color: '#52805e' }}>
+            ${(activeScenario.income - (savings + debt * 0.1)).toLocaleString()}
+          </p>
+        </div>
+
         {/* Exit button */}
         <button 
           onClick={() => navigate('/world/budget')}
@@ -208,9 +334,9 @@ export default function BudgetGame() {
               style={{ textAlign: 'center', padding: 40 }}>
               <div style={{
                 width: 64, height: 64, borderRadius: 20, margin: '0 auto 20px',
-                background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+                background: 'linear-gradient(135deg, #385c43, #2d4737)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 0 30px rgba(6,182,212,0.4)',
+                boxShadow: '0 0 30px rgba(56,92,67,0.4)',
                 animation: 'pulse 1.5s ease-in-out infinite',
               }}>
                 <Sparkles size={28} color="white" />
@@ -229,9 +355,9 @@ export default function BudgetGame() {
                 <div style={{
                   padding: '4px 10px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700,
                   textTransform: 'uppercase', letterSpacing: '0.1em',
-                  background: `${categoryColors[simEvent.category] || '#06b6d4'}22`,
-                  color: categoryColors[simEvent.category] || '#06b6d4',
-                  border: `1px solid ${categoryColors[simEvent.category] || '#06b6d4'}44`,
+                  background: `${categoryColors[simEvent.category] || '#385c43'}22`,
+                  color: categoryColors[simEvent.category] || '#385c43',
+                  border: `1px solid ${categoryColors[simEvent.category] || '#385c43'}44`,
                 }}>
                   {simEvent.category}
                 </div>
@@ -268,7 +394,7 @@ export default function BudgetGame() {
                 {(simEvent.choices || []).map((choice, idx) => {
                   const chosen = eventChosen === idx;
                   const unchosen = eventChosen !== null && !chosen;
-                  const actionColors = { savings: 'var(--accent-red)', debt: 'var(--accent-orange)', income: 'var(--accent-green)', skip: 'var(--text-secondary)' };
+                  const actionColors = { savings: '#dc2626', debt: 'var(--accent-orange)', income: '#52805e', skip: 'var(--text-secondary)' };
                   return (
                     <motion.button key={idx} whileTap={{ scale: 0.98 }}
                       disabled={eventChosen !== null}
@@ -315,7 +441,38 @@ export default function BudgetGame() {
 
   if (phase === 'result') {
     return (
-      <div className="page-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh', paddingBottom: 40 }}>
+      <div className="page-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh', paddingBottom: 40, position: 'relative' }}>
+        {/* Back button */}
+        <button 
+          onClick={() => navigate('/world/budget')}
+          style={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: 'var(--bg-card)',
+            border: '1.5px solid var(--border-glass)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            zIndex: 10,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--bg-card-hover)';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'var(--bg-card)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          <ArrowLeft size={20} color="var(--text-primary)" />
+        </button>
+        
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }}
             style={{ width: 80, height: 80, borderRadius: '50%', background: result.score >= 70 ? 'var(--gradient-budget)' : 'var(--gradient-crypto)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 16px', boxShadow: 'var(--w-budget-glow)' }}>
@@ -331,17 +488,17 @@ export default function BudgetGame() {
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Needs (Goal: 50%)</span>
-              <span style={{ fontSize: '0.875rem', color: (needs / activeScenario.income) > 0.55 ? 'var(--accent-red)' : 'var(--accent-green)' }}>{((needs / activeScenario.income) * 100).toFixed(1)}%</span>
+              <span style={{ fontSize: '0.875rem', color: (needs / activeScenario.income) > 0.55 ? '#f39c12' : '#52805e' }}>{((needs / activeScenario.income) * 100).toFixed(1)}%</span>
             </div>
             <div style={{ height: 10, background: 'var(--bg-primary)', borderRadius: 999 }}>
-              <div style={{ height: '100%', borderRadius: 999, background: 'var(--accent-red)', width: `${Math.min(100, (needs / activeScenario.income) * 100)}%` }} />
+              <div style={{ height: '100%', borderRadius: 999, background: '#dc2626', width: `${Math.min(100, (needs / activeScenario.income) * 100)}%` }} />
             </div>
           </div>
 
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Wants (Goal: 30%)</span>
-              <span style={{ fontSize: '0.875rem', color: (wants / activeScenario.income) > 0.35 ? 'var(--accent-red)' : 'var(--accent-green)' }}>{((wants / activeScenario.income) * 100).toFixed(1)}%</span>
+              <span style={{ fontSize: '0.875rem', color: (wants / activeScenario.income) > 0.35 ? '#f39c12' : '#52805e' }}>{((wants / activeScenario.income) * 100).toFixed(1)}%</span>
             </div>
             <div style={{ height: 10, background: 'var(--bg-primary)', borderRadius: 999 }}>
               <div style={{ height: '100%', borderRadius: 999, background: 'var(--accent-cyan)', width: `${Math.min(100, (wants / activeScenario.income) * 100)}%` }} />
@@ -351,10 +508,10 @@ export default function BudgetGame() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Savings (Goal: 20%)</span>
-              <span style={{ fontSize: '0.875rem', color: (saves / activeScenario.income) < 0.15 ? 'var(--accent-red)' : 'var(--accent-green)' }}>{((saves / activeScenario.income) * 100).toFixed(1)}%</span>
+              <span style={{ fontSize: '0.875rem', color: (saves / activeScenario.income) < 0.15 ? '#f39c12' : '#52805e' }}>{((saves / activeScenario.income) * 100).toFixed(1)}%</span>
             </div>
             <div style={{ height: 10, background: 'var(--bg-primary)', borderRadius: 999 }}>
-              <div style={{ height: '100%', borderRadius: 999, background: 'var(--accent-green)', width: `${Math.min(100, (saves / activeScenario.income) * 100)}%` }} />
+              <div style={{ height: '100%', borderRadius: 999, background: '#52805e', width: `${Math.min(100, (saves / activeScenario.income) * 100)}%` }} />
             </div>
           </div>
         </div>
@@ -419,7 +576,7 @@ export default function BudgetGame() {
               <span style={{ fontSize: '1.25rem' }}>{m.icon}</span>
               <div style={{ flex: 1 }}>
                 <p style={{ fontWeight: 600, fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {m.name} {m.isSurprise && <AlertCircle size={12} color="var(--accent-red)" />}
+                  {m.name} {m.isSurprise && <AlertCircle size={12} color="#f39c12" />}
                 </p>
                 <p style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>MANDATORY BILL</p>
               </div>
@@ -456,7 +613,7 @@ export default function BudgetGame() {
             <span>Your choices</span>
             <span>${choicesTotal}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: (mandatoryTotal + choicesTotal) > targetAmt ? 'var(--accent-red)' : 'var(--text-primary)', marginTop: 4, borderTop: '1px solid var(--border-glass)', paddingTop: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: (mandatoryTotal + choicesTotal) > targetAmt ? '#f39c12' : 'var(--text-primary)', marginTop: 4, borderTop: '1px solid var(--border-glass)', paddingTop: 4 }}>
             <span style={{ fontWeight: 800 }}>Total</span>
             <span style={{ fontWeight: 800 }}>${mandatoryTotal + choicesTotal} / ${targetAmt}</span>
           </div>
@@ -476,7 +633,7 @@ export default function BudgetGame() {
           </div>
           <div style={{ textAlign: 'right' }}>
             <p style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Remaining Cash</p>
-            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.25rem', color: remaining >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.25rem', color: remaining >= 0 ? '#52805e' : '#f39c12' }}>
               ${Math.abs(remaining).toLocaleString()}{remaining < 0 && ' over'}
             </p>
           </div>
@@ -484,9 +641,9 @@ export default function BudgetGame() {
 
         {/* 50/30/20 Progress Bar */}
         <div style={{ height: 16, background: 'var(--bg-card)', borderRadius: 8, display: 'flex', overflow: 'hidden', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
-          <div style={{ width: `${(needs / activeScenario.income) * 100}%`, background: 'var(--accent-red)', transition: 'width 0.3s ease' }} />
-          <div style={{ width: `${(wants / activeScenario.income) * 100}%`, background: 'var(--accent-cyan)', transition: 'width 0.3s ease' }} />
-          <div style={{ width: `${(saves / activeScenario.income) * 100}%`, background: 'var(--accent-green)', transition: 'width 0.3s ease' }} />
+          <div style={{ width: `${(needs / activeScenario.income) * 100}%`, background: '#dc2626', transition: 'width 0.3s ease' }} />
+          <div style={{ width: `${(wants / activeScenario.income) * 100}%`, background: '#06b6d4', transition: 'width 0.3s ease' }} />
+          <div style={{ width: `${(saves / activeScenario.income) * 100}%`, background: 'transparent', transition: 'width 0.3s ease' }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.625rem', fontWeight: 600, color: 'var(--text-secondary)', marginTop: 6, textTransform: 'uppercase' }}>
           <span>Needs 50%</span>
@@ -496,12 +653,20 @@ export default function BudgetGame() {
       </div>
 
       <div style={{ paddingTop: 24 }}>
-        {renderGroup('Essentials (Needs)', 'need', 'var(--accent-red)', targetNeeds)}
-        {renderGroup('Lifestyle (Wants)', 'want', 'var(--accent-cyan)', targetWants)}
-        {renderGroup('Future (Savings)', 'save', 'var(--accent-green)', targetSaves)}
+        {renderGroup('Essentials (Needs)', 'need', '#f39c12', targetNeeds)}
+        {renderGroup('Lifestyle (Wants)', 'want', '#06b6d4', targetWants)}
+        {renderGroup('Future (Savings)', 'save', '#52805e', targetSaves)}
 
-        <button className="btn btn-budget btn-block btn-lg" onClick={evaluateBudget} style={{ marginTop: 24 }}>
-          Submit Budget <ArrowRight size={18} />
+        <button 
+          className="btn btn-budget btn-block btn-lg" 
+          onClick={evaluateBudget} 
+          disabled={remaining < 0}
+          style={{ 
+            marginTop: 24,
+            opacity: remaining < 0 ? 0.5 : 1,
+            cursor: remaining < 0 ? 'not-allowed' : 'pointer',
+          }}>
+          {remaining < 0 ? '⚠️ Budget Over - Reduce Spending' : 'Submit Budget'} {remaining >= 0 && <ArrowRight size={18} />}
         </button>
       </div>
     </div>

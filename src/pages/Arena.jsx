@@ -49,8 +49,8 @@ function TradeModal({ stock, holding, stockCash, onClose, onTrade }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: '1.5rem' }}>{stock.logo}</span>
             <div>
-              <h3 style={{ fontWeight: 700, fontSize: '1rem' }}>{stock.ticker}</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>${stock.price.toFixed(2)}{sharesOwned > 0 && <span style={{ marginLeft: 8, color: 'var(--accent-green)' }}>· You own {sharesOwned} shares</span>}</p>
+              <h3 style={{ fontFamily: 'var(--font-stock)', fontWeight: 700, fontSize: '1.25rem', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>{stock.ticker}</h3>
+              <p style={{ fontFamily: 'var(--font-stock)', fontSize: '1rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>${stock.price.toFixed(2)}{sharesOwned > 0 && <span style={{ fontFamily: 'var(--font-body)', marginLeft: 8, color: 'var(--accent-green)', textTransform: 'none' }}>· You own {sharesOwned} shares</span>}</p>
             </div>
           </div>
           <button onClick={onClose}><X size={20} color="var(--text-secondary)" /></button>
@@ -64,7 +64,7 @@ function TradeModal({ stock, holding, stockCash, onClose, onTrade }) {
               <button key={t} onClick={() => handleSetType(t)} disabled={disabled}
                 style={{
                   flex: 1, padding: '10px 8px', borderRadius: 9999, fontSize: '0.875rem', fontWeight: 700,
-                  background: type === t ? (t === 'BUY' ? 'linear-gradient(135deg, #10b981, #06b6d4)' : 'linear-gradient(135deg, #ef4444, #ec4899)') : 'transparent',
+                  background: type === t ? (t === 'BUY' ? 'linear-gradient(135deg, #10b981, #385c43)' : 'linear-gradient(135deg, #ef4444, #ec4899)') : 'transparent',
                   color: disabled ? 'var(--text-muted)' : (type === t ? 'white' : 'var(--text-secondary)'),
                   transition: 'all 0.25s', opacity: disabled ? 0.4 : 1, cursor: disabled ? 'not-allowed' : 'pointer',
                 }}>{t}{disabled ? ' (no shares)' : ''}</button>
@@ -90,12 +90,12 @@ function TradeModal({ stock, holding, stockCash, onClose, onTrade }) {
         {/* Cost Summary */}
         <div style={{ padding: 16, background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{shares} × ${stock.price.toFixed(2)}</span>
-            <span style={{ fontWeight: 700, fontFamily: 'var(--font-display)' }}>${cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{shares} × <span style={{ fontFamily: 'var(--font-stock)', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>${stock.price.toFixed(2)}</span></span>
+            <span style={{ fontWeight: 700, fontFamily: 'var(--font-stock)', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>${cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Estimated Total</span>
-            <span style={{ fontWeight: 800, fontFamily: 'var(--font-display)', fontSize: '1.125rem', color: type === 'BUY' ? 'var(--accent-green)' : 'var(--accent-red)' }}>${cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span style={{ fontWeight: 800, fontFamily: 'var(--font-stock)', fontSize: '1.375rem', color: type === 'BUY' ? 'var(--accent-green)' : 'var(--accent-red)', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>${cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         </div>
 
@@ -107,7 +107,7 @@ function TradeModal({ stock, holding, stockCash, onClose, onTrade }) {
         <button className="btn btn-block btn-lg"
           disabled={cantAfford}
           onClick={() => { if (!cantAfford) { onTrade(stock.ticker, type, shares, stock.price); onClose(); } }}
-          style={{ background: cantAfford ? 'rgba(255,255,255,0.08)' : type === 'BUY' ? 'linear-gradient(135deg, #10b981, #06b6d4)' : 'linear-gradient(135deg, #ef4444, #ec4899)', color: cantAfford ? 'var(--text-muted)' : 'white', fontWeight: 700, boxShadow: cantAfford ? 'none' : type === 'BUY' ? '0 0 20px rgba(16,185,129,0.3)' : '0 0 20px rgba(239,68,68,0.3)', cursor: cantAfford ? 'not-allowed' : 'pointer', opacity: cantAfford ? 0.6 : 1 }}>
+          style={{ background: cantAfford ? 'rgba(255,255,255,0.08)' : type === 'BUY' ? 'linear-gradient(135deg, #10b981, #385c43)' : 'linear-gradient(135deg, #ef4444, #ec4899)', color: cantAfford ? 'var(--text-muted)' : 'white', fontWeight: 700, boxShadow: cantAfford ? 'none' : type === 'BUY' ? '0 0 20px rgba(16,185,129,0.3)' : '0 0 20px rgba(239,68,68,0.3)', cursor: cantAfford ? 'not-allowed' : 'pointer', opacity: cantAfford ? 0.6 : 1 }}>
           {cantAfford ? '🚫 Insufficient Funds' : `${type === 'BUY' ? '🛒' : '💰'} ${type} ${shares} ${shares === 1 ? 'Share' : 'Shares'}`}
         </button>
       </motion.div>
@@ -326,8 +326,8 @@ export default function Arena() {
   if (!stockStartingAmount) {
     const amounts = [
       { value: 10000, label: '$10K', desc: 'Conservative start', icon: '🌱', color: '#10b981' },
-      { value: 50000, label: '$50K', desc: 'Balanced portfolio', icon: '📊', color: '#06b6d4' },
-      { value: 100000, label: '$100K', desc: 'Serious trader', icon: '💼', color: '#a855f7' },
+      { value: 50000, label: '$50K', desc: 'Balanced portfolio', icon: '📊', color: '#385c43' },
+      { value: 100000, label: '$100K', desc: 'Serious trader', icon: '💼', color: '#f39c12' },
       { value: 500000, label: '$500K', desc: 'Wall Street whale', icon: '🐋', color: '#f59e0b' },
     ];
     return (
@@ -606,15 +606,15 @@ export default function Arena() {
                 {stock.logo}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: 700, fontSize: '0.875rem' }}>{stock.ticker}</p>
+                <p style={{ fontFamily: 'var(--font-stock)', fontWeight: 700, fontSize: '1.125rem', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>{stock.ticker}</p>
                 <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stock.name}</p>
               </div>
               <MiniChart data={priceHistories[stock.ticker]} color={stock.change >= 0 ? '#10b981' : '#ef4444'} />
               <div style={{ textAlign: 'right', minWidth: 70 }}>
-                <p style={{ fontWeight: 700, fontFamily: 'var(--font-display)', fontSize: '0.9375rem' }}>${stock.price.toFixed(2)}</p>
+                <p style={{ fontFamily: 'var(--font-stock)', fontWeight: 700, fontSize: '1.1875rem', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>${stock.price.toFixed(2)}</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2 }}>
                   {stock.change >= 0 ? <ArrowUpRight size={12} color="var(--accent-green)" /> : <ArrowDownRight size={12} color="var(--accent-red)" />}
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: stock.change >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                  <span style={{ fontFamily: 'var(--font-stock)', fontSize: '1rem', fontWeight: 600, color: stock.change >= 0 ? 'var(--accent-green)' : 'var(--accent-red)', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>
                     {stock.change >= 0 ? '+' : ''}{stock.changePct}%
                   </span>
                 </div>
@@ -649,13 +649,13 @@ export default function Arena() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ fontSize: '1.25rem' }}>{stock.logo}</span>
                         <div>
-                          <p style={{ fontWeight: 700, fontSize: '0.875rem' }}>{stock.ticker}</p>
-                          <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>{h.shares} shares @ ${h.avgCost.toFixed(2)}</p>
+                          <p style={{ fontFamily: 'var(--font-stock)', fontWeight: 700, fontSize: '1.125rem', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>{stock.ticker}</p>
+                          <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>{h.shares} shares @ <span style={{ fontFamily: 'var(--font-stock)', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>${h.avgCost.toFixed(2)}</span></p>
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <p style={{ fontWeight: 700, fontFamily: 'var(--font-display)' }}>${currentVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                        <p style={{ fontSize: '0.75rem', fontWeight: 600, color: pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                        <p style={{ fontFamily: 'var(--font-stock)', fontWeight: 700, fontSize: '1.0625rem', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>${currentVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        <p style={{ fontFamily: 'var(--font-stock)', fontSize: '1rem', fontWeight: 600, color: pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>
                           {pnl >= 0 ? '+' : ''}{pnlPct}% (${Math.abs(pnl).toFixed(2)})
                         </p>
                       </div>

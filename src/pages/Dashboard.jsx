@@ -240,13 +240,13 @@ export default function Dashboard() {
               boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
             }}>
               <span style={{ fontSize: '1.5rem', marginBottom: 2 }}>{s.logo}</span>
-              <span style={{ fontWeight: 900, fontSize: '0.875rem', color: headerTeal }}>{s.ticker}</span>
-              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '0.9375rem', color: headerTeal }}>
+              <span style={{ fontFamily: 'var(--font-stock)', fontWeight: 900, fontSize: '1.125rem', color: headerTeal, textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>{s.ticker}</span>
+              <span style={{ fontFamily: 'var(--font-stock)', fontWeight: 800, fontSize: '1.1875rem', color: headerTeal, textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>
                 ${s.price.toFixed(2)}
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.15)', padding: '2px 6px', borderRadius: 8 }}>
                 {s.change >= 0 ? <ArrowUpRight size={12} color="#fff" /> : <ArrowDownRight size={12} color="#ffb3b3" />}
-                <span style={{ fontSize: '0.6875rem', fontWeight: 800, color: s.change >= 0 ? '#fff' : '#ffb3b3' }}>
+                <span style={{ fontFamily: 'var(--font-stock)', fontSize: '0.9375rem', fontWeight: 800, color: s.change >= 0 ? '#fff' : '#ffb3b3', textTransform: 'uppercase', letterSpacing: '0.02em', wordSpacing: '0.15em' }}>
                   {s.change >= 0 ? '+' : ''}{s.changePct}%
                 </span>
               </div>

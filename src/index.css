@@ -1,9 +1,115 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+/* ── ZABAL FONT (body text) ─────────────────────── */
+@font-face {
+  font-family: 'Zabal';
+  src: url('/zabal/ZabalDEMO-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Zabal';
+  src: url('/zabal/ZabalDEMO-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Zabal';
+  src: url('/zabal/ZabalDEMO-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Zabal';
+  src: url('/zabal/ZabalDEMO-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Zabal';
+  src: url('/zabal/ZabalDEMO-ExtraBold.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Zabal';
+  src: url('/zabal/ZabalDEMO-Black.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── MALINTON FONT (headings & usernames) ────────── */
+@font-face {
+  font-family: 'Malinton';
+  src: url('/malinton/MalintonTrialVersion-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Malinton';
+  src: url('/malinton/MalintonTrialVersion-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Malinton';
+  src: url('/malinton/MalintonTrialVersion-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Malinton';
+  src: url('/malinton/MalintonTrialVersion-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Malinton';
+  src: url('/malinton/MalintonTrialVersion-ExtBd.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Malinton';
+  src: url('/malinton/MalintonTrialVersion-Black.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── BEBAS KAI FONT (stock names & prices) ────────── */
+@font-face {
+  font-family: 'BebasKai';
+  src: url('/BebasKai.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* ── DESIGN TOKENS ───────────────────────────────── */
 :root {
-  --font-body: 'Inter', system-ui, sans-serif;
-  --font-display: 'Outfit', sans-serif;
+  --font-body: 'Zabal', system-ui, sans-serif;
+  --font-display: 'Malinton', sans-serif;
+  --font-stock: 'BebasKai', sans-serif;
 
   /* Base Green Theme */
   --bg-primary: #56755f;
@@ -17,9 +123,9 @@
   --text-muted: #a3c4b1;
 
   /* World: Budget Boardwalk (teal) */
-  --w-budget: #06b6d4;
-  --w-budget-bg: rgba(6, 182, 212, 0.12);
-  --w-budget-glow: 0 0 20px rgba(6, 182, 212, 0.3);
+  --w-budget: #385c43;
+  --w-budget-bg: rgba(56, 92, 67, 0.12);
+  --w-budget-glow: 0 0 20px rgba(56, 92, 67, 0.3);
 
   /* World: Stock Market Shore (green) */
   --w-stocks: #10b981;
@@ -32,16 +138,16 @@
   --w-crypto-glow: 0 0 20px rgba(245, 158, 11, 0.3);
 
   /* Accents */
-  --accent-purple: #a855f7;
+  --accent-purple: #f39c12;
   --accent-green: #10b981;
   --accent-red: #ef4444;
   --accent-orange: #f59e0b;
-  --accent-cyan: #06b6d4;
+  --accent-cyan: #385c43;
   --accent-pink: #ec4899;
 
   /* Gradients */
-  --gradient-purple: linear-gradient(135deg, #a855f7, #7c3aed);
-  --gradient-budget: linear-gradient(135deg, #06b6d4, #0891b2);
+  --gradient-purple: linear-gradient(135deg, #f39c12, #d68910);
+  --gradient-budget: linear-gradient(135deg, #385c43, #2d4a35);
   --gradient-stocks: linear-gradient(135deg, #10b981, #059669);
   --gradient-crypto: linear-gradient(135deg, #f59e0b, #d97706);
 
@@ -50,7 +156,7 @@
   --border-subtle: rgba(255, 255, 255, 0.05);
 
   /* Shadows */
-  --shadow-glow-purple: 0 0 20px rgba(168, 85, 247, 0.3);
+  --shadow-glow-purple: 0 0 20px rgba(243, 156, 18, 0.3);
 
   /* Radius */
   --radius-sm: 8px;
@@ -71,11 +177,33 @@ body {
   min-height: 100dvh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.015em;
 }
 button { background: none; border: none; color: inherit; cursor: pointer; font-family: inherit; font-size: inherit; }
 a { color: inherit; text-decoration: none; }
 input, textarea { font-family: inherit; }
 img { max-width: 100%; display: block; }
+
+/* ── HEADINGS & USERNAMES (Malinton) ────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.username, [data-username] {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+/* ── STOCK NAMES & PRICES (BebasKai) ────────────── */
+.stock-ticker, .stock-name, .stock-price, [data-stock-ticker], [data-stock-price] {
+  font-family: var(--font-stock);
+  letter-spacing: 0.02em;
+  word-spacing: 0.15em;
+  text-transform: uppercase;
+}
 
 /* ── APP SHELL ────────────────────────────────────── */
 .app-container {
@@ -234,7 +362,7 @@ img { max-width: 100%; display: block; }
 .badge-green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
 .badge-orange { background: rgba(245, 158, 11, 0.15); color: var(--accent-orange); }
 .badge-red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
-.badge-cyan { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); }
+.badge-cyan { background: rgba(56, 92, 67, 0.15); color: var(--accent-cyan); }
 
 /* ── CRYPTO CRASH ──────────────────────────────── */
 .mine-grid {
