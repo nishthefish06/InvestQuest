@@ -110,7 +110,9 @@ export function GameProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('iq_token'));
   const [isInitializing, setIsInitializing] = useState(() => !!localStorage.getItem('iq_token'));
   const [pusherClient, setPusherClient] = useState(null);
+  const [inBattle, setInBattle] = useState(false); // Disable auto-save during battles
   const saveTimer = useRef(null);
+  const progressSaveTimer = useRef(null); // Separate timer for progress saves
 
   // ── Session Restore & Periodic Sync ─────────────────
   const fetchSessionData = useCallback(async () => {
@@ -127,6 +129,7 @@ export function GameProvider({ children }) {
            ...data.gameState,
            achievements: s.achievements,
            username: data.username || s.username,
+           onboarded: true, // Skip onboarding for all authenticated users
          }));
       }
     } catch (err) {
@@ -146,17 +149,19 @@ export function GameProvider({ children }) {
   }, [fetchSessionData]);
 
   // Periodic background sync (e.g. for friend request acceptance)
+  // Disabled during battles to prevent server state from overwriting local trading state
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn || inBattle) return;
     const interval = setInterval(() => {
       fetchSessionData();
     }, 15000); // Check every 15 seconds
     return () => clearInterval(interval);
-  }, [isLoggedIn, fetchSessionData]);
+  }, [isLoggedIn, inBattle, fetchSessionData]);
 
   // ── Auto-save debounced (save 2s after last state change) ─
+  // Disabled during battles to keep Arena trades ephemeral and prevent conflicts
   useEffect(() => {
-    if (!token || !isLoggedIn) return;
+    if (!token || !isLoggedIn || inBattle) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       // achievements, friends, and friendRequests are handled by specific DB requests or atomic ops
@@ -164,7 +169,27 @@ export function GameProvider({ children }) {
       API.save(token, saveable).catch(() => {});
     }, 2000);
     return () => clearTimeout(saveTimer.current);
-  }, [state, token, isLoggedIn]);
+  }, [state, token, isLoggedIn, inBattle]);
+
+  // ── Immediate save for critical progress (XP, level, streak, lessons) ─
+  // This bypasses inBattle check to ensure progress is always saved
+  useEffect(() => {
+    if (!token || !isLoggedIn) return;
+    if (progressSaveTimer.current) clearTimeout(progressSaveTimer.current);
+    progressSaveTimer.current = setTimeout(() => {
+      // Only save critical progress fields
+      const criticalFields = {
+        xp: state.xp,
+        level: state.level,
+        xpToNext: state.xpToNext,
+        streak: state.streak,
+        lessonsCompleted: state.lessonsCompleted,
+        worldProgress: state.worldProgress,
+      };
+      API.save(token, criticalFields).catch(() => {});
+    }, 500); // Faster save for progress
+    return () => clearTimeout(progressSaveTimer.current);
+  }, [state.xp, state.level, state.xpToNext, state.streak, state.lessonsCompleted, state.worldProgress, token, isLoggedIn]);
 
   // ── Real-Time Multiplayer (Pusher) ──────────────────
   const [incomingChallenge, setIncomingChallenge] = useState(null);
@@ -222,7 +247,7 @@ export function GameProvider({ children }) {
     localStorage.setItem('iq_token', data.token);
     setToken(data.token);
     setIsLoggedIn(true);
-    setState((s) => ({ ...s, username: data.username, onboarded: false }));
+    setState((s) => ({ ...s, username: data.username, onboarded: true }));
   }, []);
 
   const login = useCallback(async (username, password) => {
@@ -236,9 +261,10 @@ export function GameProvider({ children }) {
         ...data.gameState,
         achievements: s.achievements, // keep achievement structure
         username: data.username,
+        onboarded: true, // Skip onboarding for returning users
       }));
     } else {
-      setState((s) => ({ ...s, username: data.username, onboarded: false }));
+      setState((s) => ({ ...s, username: data.username, onboarded: true }));
     }
   }, []);
 
@@ -250,8 +276,17 @@ export function GameProvider({ children }) {
   }, []);
 
   // ── Market Simulation ──────────────────────────────
+  const marketBroadcastCallback = useRef(null);
+  
+  // Allow Arena to set a callback for broadcasting market updates
+  const setMarketBroadcast = useCallback((callback) => {
+    marketBroadcastCallback.current = callback;
+  }, []);
+
   useEffect(() => {
-    // Only tick the market if the user is in the Arena (we'll assume the browser timer covers this)
+    // Only tick the market during active battles
+    if (!inBattle) return;
+    
     const timer = setInterval(() => {
       setState((s) => {
         const newMarket = s.marketStocks.map((stock) => {
@@ -271,12 +306,18 @@ export function GameProvider({ children }) {
             changePct: parseFloat(newChangePct)
           };
         });
+        
+        // Broadcast market update if callback is set (Arena host)
+        if (marketBroadcastCallback.current) {
+          marketBroadcastCallback.current(newMarket);
+        }
+        
         return { ...s, marketStocks: newMarket };
       });
     }, 4000); // Update every 4 seconds
 
     return () => clearInterval(timer);
-  }, []);
+  }, [inBattle]);
 
   // ── Game functions ──────────────────────────────────
   const completeOnboarding = useCallback((data) => {
@@ -451,6 +492,7 @@ export function GameProvider({ children }) {
     searchUser, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend,
     pusherClient, triggerPusherEvent,
     incomingChallenge, dismissChallenge,
+    inBattle, setInBattle, setMarketBroadcast,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

@@ -66,9 +66,9 @@ function AppContent() {
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(168,85,247,0.2)', color: 'var(--accent-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Swords size={32} />
             </div>
-            <h3 style={{ fontWeight: 800, fontSize: '1.25rem', fontFamily: 'var(--font-display)', marginBottom: 8 }}>⚔️ Incoming Battle!</h3>
+            <h3 style={{ fontWeight: 800, fontSize: '1.25rem', fontFamily: 'var(--font-display)', marginBottom: 8 }}>⚔️ Challenge Request!</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 24, lineHeight: 1.4 }}>
-              <strong style={{ color: 'var(--text-primary)' }}>{incomingChallenge.challenger}</strong> challenged you to a live stock market battle!
+              <strong style={{ color: 'var(--text-primary)' }}>{incomingChallenge.challenger}</strong> has challenged you to a 3-minute stock trading battle!
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
               <button onClick={dismissChallenge}
