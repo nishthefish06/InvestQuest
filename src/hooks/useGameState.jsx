@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import Pusher from 'pusher-js';
 import { SIM_STOCKS } from '../data/skills';
 
 const GameContext = createContext();
@@ -108,6 +109,7 @@ export function GameProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('iq_token'));
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('iq_token'));
   const [isInitializing, setIsInitializing] = useState(() => !!localStorage.getItem('iq_token'));
+  const [pusherClient, setPusherClient] = useState(null);
   const saveTimer = useRef(null);
 
   // ── Session Restore & Periodic Sync ─────────────────
@@ -163,6 +165,37 @@ export function GameProvider({ children }) {
     }, 2000);
     return () => clearTimeout(saveTimer.current);
   }, [state, token, isLoggedIn]);
+
+  // ── Real-Time Multiplayer (Pusher) ──────────────────
+  useEffect(() => {
+    if (isLoggedIn && token && import.meta.env.VITE_PUSHER_KEY) {
+      const p = new Pusher(import.meta.env.VITE_PUSHER_KEY, {
+        cluster: import.meta.env.VITE_PUSHER_CLUSTER,
+        authEndpoint: '/api/pusher/auth',
+        auth: {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      });
+      setPusherClient(p);
+
+      return () => {
+        p.disconnect();
+      };
+    }
+  }, [isLoggedIn, token]);
+
+  const triggerPusherEvent = useCallback(async (channel, event, data) => {
+    if (!token) throw new Error('Not authenticated');
+    const res = await fetch('/api/pusher/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ channel, event, data }),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to trigger pusher event');
+    }
+  }, [token]);
 
   // ── Auth functions ──────────────────────────────────
   const signup = useCallback(async (username, password) => {
@@ -387,12 +420,17 @@ export function GameProvider({ children }) {
     });
   }, []);
 
+  const overrideMarket = useCallback((newMarket) => {
+    setState((s) => ({ ...s, marketStocks: newMarket }));
+  }, []);
+
   const value = {
     ...state, isLoggedIn, token, isInitializing,
     login, signup, logout,
     completeOnboarding, addXP, loseHeart, resetHearts, completeLesson,
-    setStartingAmount, executeTrade, updateBudgetScenario, setCrashBestMultiplier, skipTime,
+    setStartingAmount, executeTrade, updateBudgetScenario, setCrashBestMultiplier, skipTime, overrideMarket,
     searchUser, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend,
+    pusherClient, triggerPusherEvent,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useGameState } from '../hooks/useGameState';
 import { BUDDY_LIST } from '../data/skills';
 import { SIM_STOCKS } from '../data/skills';
 import { WORLDS } from '../data/skills';
-import { Settings, ChevronRight, Send, DollarSign, LogOut } from 'lucide-react';
+import { Settings, ChevronRight, Send, DollarSign, LogOut, Swords } from 'lucide-react';
 
 export default function Profile() {
-  const { username, xp, level, xpToNext, streak, lessonsCompleted, achievements, holdings, stockCash, worldProgress, friends, friendRequests, searchUser, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend, logout } = useGameState();
+  const { username, xp, level, xpToNext, streak, lessonsCompleted, achievements, holdings, stockCash, worldProgress, friends, friendRequests, searchUser, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend, logout, pusherClient, triggerPusherEvent } = useGameState();
   const navigate = useNavigate();
   const progress = (xp / xpToNext) * 100;
   
@@ -17,6 +17,41 @@ export default function Profile() {
   const [searchResult, setSearchResult] = useState(null);
   const [searchStatus, setSearchStatus] = useState(''); // 'loading', 'found', 'error', 'sent'
   const [searchError, setSearchError] = useState('');
+  const [incomingChallenge, setIncomingChallenge] = useState(null);
+
+  useEffect(() => {
+    if (pusherClient && username) {
+      // Public channel — no auth required so events are reliably received
+      const safeChannel = `notify-${username.replace(/[^a-zA-Z0-9_-]/g, '')}`;
+      const channel = pusherClient.subscribe(safeChannel);
+      
+      channel.bind('challenge', (data) => {
+        setIncomingChallenge(data);
+      });
+
+      return () => {
+        pusherClient.unsubscribe(safeChannel);
+      };
+    }
+  }, [pusherClient, username]);
+
+  const handleSendChallenge = async (friendUsername) => {
+    const matchId = `match-${username.replace(/[^a-zA-Z0-9]/g, '')}-${Date.now()}`;
+    const targetChannel = `notify-${friendUsername.replace(/[^a-zA-Z0-9_-]/g, '')}`;
+    try {
+      await triggerPusherEvent(targetChannel, 'challenge', { challenger: username, matchId });
+      navigate(`/arena/${matchId}`);
+    } catch (e) {
+      console.error('Failed to send challenge', e);
+      alert(`Challenge failed: ${e.message}`);
+    }
+  };
+
+  const handleAcceptChallenge = () => {
+    if (incomingChallenge) {
+      navigate(`/arena/${incomingChallenge.matchId}`);
+    }
+  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -151,10 +186,20 @@ export default function Profile() {
                   <p style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{buddy.username}</p>
                   <p style={{ fontSize: '0.625rem', color: 'var(--text-secondary)' }}>Lvl {buddy.level || 1} · {buddy.streak || 0}🔥 · {(buddy.xp || 0).toLocaleString()} XP</p>
                 </div>
-                <button onClick={() => removeFriend(buddy.username)}
-                  style={{ padding: '6px', borderRadius: 9999, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', border: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}>
-                  <LogOut size={14} />
-                </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => handleSendChallenge(buddy.username)}
+                    style={{ padding: '6px 10px', borderRadius: 9999, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4, background: 'var(--accent-purple)', fontSize: '0.6875rem', fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 0 10px rgba(168,85,247,0.4)' }}>
+                    <Swords size={12} /> Battle
+                  </button>
+                  <button onClick={() => {
+                    if (window.confirm(`Are you sure you want to remove ${buddy.username} from your friends list?`)) {
+                      removeFriend(buddy.username);
+                    }
+                  }}
+                    style={{ padding: '6px', borderRadius: 9999, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', cursor: 'pointer' }}>
+                    <LogOut size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           ))
@@ -208,6 +253,38 @@ export default function Profile() {
             </div>
             
             <button onClick={() => setShowAddFriend(false)} style={{ width: '100%', marginTop: 16, padding: 10, fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Close</button>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Incoming Challenge Modal */}
+      {incomingChallenge && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <motion.div initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }}
+            style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-xl)', padding: 24, width: '100%', maxWidth: 320, border: '2px solid var(--accent-purple)', textAlign: 'center', boxShadow: 'var(--shadow-glow-purple)' }}>
+            
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(168,85,247,0.2)', color: 'var(--accent-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Swords size={32} />
+            </div>
+            
+            <h3 style={{ fontWeight: 800, fontSize: '1.25rem', fontFamily: 'var(--font-display)', marginBottom: 8 }}>Incoming Battle!</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 24, lineHeight: 1.4 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>{incomingChallenge.challenger}</strong> challenged you to a live stock market battle!
+            </p>
+            
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                onClick={() => setIncomingChallenge(null)} 
+                style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-md)', background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)', fontWeight: 600 }}>
+                Decline
+              </button>
+              <button 
+                onClick={handleAcceptChallenge} 
+                style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-md)', background: 'var(--accent-purple)', color: '#fff', border: 'none', fontWeight: 700, boxShadow: '0 0 14px rgba(168,85,247,0.4)' }}>
+                Accept
+              </button>
+            </div>
           </motion.div>
         </motion.div>
       )}

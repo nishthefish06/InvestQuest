@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameState } from '../hooks/useGameState';
 import { SIM_STOCKS, generatePriceHistory } from '../data/skills';
-import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, X, Briefcase, BarChart3, Users } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, X, Briefcase, BarChart3, Users, Swords } from 'lucide-react';
+
 
 function MiniChart({ data, color }) {
   const max = Math.max(...data.map((d) => d.price));
@@ -17,10 +19,22 @@ function MiniChart({ data, color }) {
   );
 }
 
-function TradeModal({ stock, onClose, onTrade }) {
+function TradeModal({ stock, holding, onClose, onTrade }) {
+  const sharesOwned = holding ? holding.shares : 0;
   const [type, setType] = useState('BUY');
   const [shares, setShares] = useState(1);
   const cost = shares * stock.price;
+
+  const handleSetType = (t) => {
+    if (t === 'SELL' && sharesOwned === 0) return; // can't sell what you don't own
+    setType(t);
+    setShares(1);
+  };
+
+  const handleSetShares = (n) => {
+    const max = type === 'SELL' ? sharesOwned : Infinity;
+    setShares(Math.min(max, Math.max(1, n)));
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -34,7 +48,7 @@ function TradeModal({ stock, onClose, onTrade }) {
             <span style={{ fontSize: '1.5rem' }}>{stock.logo}</span>
             <div>
               <h3 style={{ fontWeight: 700, fontSize: '1rem' }}>{stock.ticker}</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>${stock.price.toFixed(2)}</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>${stock.price.toFixed(2)}{sharesOwned > 0 && <span style={{ marginLeft: 8, color: 'var(--accent-green)' }}>· You own {sharesOwned} shares</span>}</p>
             </div>
           </div>
           <button onClick={onClose}><X size={20} color="var(--text-secondary)" /></button>
@@ -42,25 +56,31 @@ function TradeModal({ stock, onClose, onTrade }) {
 
         {/* Buy/Sell Toggle */}
         <div style={{ display: 'flex', gap: 6, padding: 4, background: 'var(--bg-card)', borderRadius: 9999, marginBottom: 20 }}>
-          {['BUY', 'SELL'].map((t) => (
-            <button key={t} onClick={() => setType(t)}
-              style={{
-                flex: 1, padding: '10px 8px', borderRadius: 9999, fontSize: '0.875rem', fontWeight: 700,
-                background: type === t ? (t === 'BUY' ? 'linear-gradient(135deg, #10b981, #06b6d4)' : 'linear-gradient(135deg, #ef4444, #ec4899)') : 'transparent',
-                color: type === t ? 'white' : 'var(--text-secondary)', transition: 'all 0.25s',
-              }}>{t}</button>
-          ))}
+          {['BUY', 'SELL'].map((t) => {
+            const disabled = t === 'SELL' && sharesOwned === 0;
+            return (
+              <button key={t} onClick={() => handleSetType(t)} disabled={disabled}
+                style={{
+                  flex: 1, padding: '10px 8px', borderRadius: 9999, fontSize: '0.875rem', fontWeight: 700,
+                  background: type === t ? (t === 'BUY' ? 'linear-gradient(135deg, #10b981, #06b6d4)' : 'linear-gradient(135deg, #ef4444, #ec4899)') : 'transparent',
+                  color: disabled ? 'var(--text-muted)' : (type === t ? 'white' : 'var(--text-secondary)'),
+                  transition: 'all 0.25s', opacity: disabled ? 0.4 : 1, cursor: disabled ? 'not-allowed' : 'pointer',
+                }}>{t}{disabled ? ' (no shares)' : ''}</button>
+            );
+          })}
         </div>
 
         {/* Shares Input */}
         <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Number of Shares</label>
+          <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>
+            Number of Shares{type === 'SELL' && <span style={{ color: 'var(--accent-orange)', marginLeft: 6 }}>max {sharesOwned}</span>}
+          </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => setShares(Math.max(1, shares - 1))}
+            <button onClick={() => handleSetShares(shares - 1)}
               style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-card)', border: '1px solid var(--border-glass)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-            <input type="number" value={shares} onChange={(e) => setShares(Math.max(1, parseInt(e.target.value) || 1))}
+            <input type="number" value={shares} onChange={(e) => handleSetShares(parseInt(e.target.value) || 1)}
               style={{ width: 80, textAlign: 'center', background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-md)', padding: '10px', fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }} />
-            <button onClick={() => setShares(shares + 1)}
+            <button onClick={() => handleSetShares(shares + 1)}
               style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-card)', border: '1px solid var(--border-glass)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
           </div>
         </div>
@@ -88,9 +108,11 @@ function TradeModal({ stock, onClose, onTrade }) {
 }
 
 export default function Arena() {
-  const { stockCash, stockStartingAmount, holdings, executeTrade, addXP, setStartingAmount, marketStocks, skipTime } = useGameState();
+  const { matchId } = useParams();
+  const { username, stockCash, stockStartingAmount, holdings, executeTrade, addXP, setStartingAmount, marketStocks, skipTime, overrideMarket, pusherClient, triggerPusherEvent } = useGameState();
   const [selectedStock, setSelectedStock] = useState(null);
   const [tab, setTab] = useState('market'); // market | portfolio | arena
+  const [opponent, setOpponent] = useState(null);
 
   const priceHistories = useMemo(() => {
     const map = {};
@@ -104,10 +126,64 @@ export default function Arena() {
   }, 0);
   const totalValue = stockCash + holdingsValue;
 
+  // ── Multiplayer Logic ──────────────────────────────
+  useEffect(() => {
+    if (matchId && pusherClient && username) {
+      const channelName = `arena-${matchId}`;
+      const channel = pusherClient.subscribe(channelName);
+      
+      channel.bind('networth-update', (data) => {
+        if (data.username !== username) {
+          setOpponent(data);
+        }
+      });
+
+      channel.bind('market-sync', (data) => {
+        if (data.sender !== username && data.newMarket) {
+          overrideMarket(data.newMarket);
+        }
+      });
+
+      // Announce we arrived
+      triggerPusherEvent(`arena-${matchId}`, 'networth-update', { username, netWorth: totalValue }).catch(() => {});
+
+      return () => {
+        pusherClient.unsubscribe(channelName);
+      };
+    }
+  }, [matchId, pusherClient, username]);
+
+  // Broadcast Net Worth whenever it changes
+  useEffect(() => {
+    if (matchId && pusherClient) {
+      triggerPusherEvent(`private-arena-${matchId}`, 'networth-update', { username, netWorth: totalValue }).catch(() => {});
+    }
+  }, [totalValue, matchId]);
+
   const handleTrade = (ticker, type, shares, price) => {
     executeTrade(ticker, type, shares, price);
     addXP(15);
   };
+
+  const handleFastForward = () => {
+    skipTime();
+    // In a live match, the person who skips time broadcasts the new market prices to the opponent so they stay perfectly in sync
+    setTimeout(() => {
+      if (matchId && pusherClient) {
+        // marketStocks will be updated by skipTime synchronously locally, but we need the newest ref
+        // Actually, triggerPusherEvent from within the state setter is tricky, so we rely on the next render.
+      }
+    }, 0);
+  };
+
+  // Sync market to opponent if we skipped time
+  const prevMarketRef = useRef(marketStocks);
+  useEffect(() => {
+    if (matchId && pusherClient && prevMarketRef.current !== marketStocks) {
+      triggerPusherEvent(`arena-${matchId}`, 'market-sync', { newMarket: marketStocks }).catch(() => {});
+    }
+    prevMarketRef.current = marketStocks;
+  }, [marketStocks, matchId, pusherClient]);
 
   // ── Starting Amount Picker ─────────────────────────
   if (!stockStartingAmount) {
@@ -160,10 +236,32 @@ export default function Arena() {
           <h1 className="page-title">Trade 📊</h1>
           <p className="page-subtitle">Paper trading simulator — learn risk-free!</p>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={skipTime} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', padding: '6px 12px' }}>
+        <button className="btn btn-secondary btn-sm" onClick={handleFastForward} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', padding: '6px 12px' }}>
           ⏩ Fast Forward 1 Week
         </button>
       </div>
+
+      {/* Multiplayer Split Screen Navbar */}
+      {matchId && (
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} 
+          style={{ background: 'var(--gradient-purple)', padding: '12px 16px', borderRadius: 'var(--radius-lg)', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(168,85,247,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div>
+            <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', opacity: 0.8, letterSpacing: '0.05em' }}>You</p>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.25rem', color: '#fff' }}>${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Swords size={16} color="#fff" />
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: '0.625rem', textTransform: 'uppercase', opacity: 0.8, letterSpacing: '0.05em' }}>{opponent ? opponent.username : 'Waiting...'}</p>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.25rem', color: '#fff' }}>
+              {opponent ? `$${opponent.netWorth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '---'}
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {/* Balance Card */}
       <div className="card" style={{ padding: 16, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -314,7 +412,7 @@ export default function Arena() {
       {/* Trade Modal */}
       <AnimatePresence>
         {selectedStock && (
-          <TradeModal stock={selectedStock} onClose={() => setSelectedStock(null)} onTrade={handleTrade} />
+          <TradeModal stock={selectedStock} holding={holdings.find(h => h.ticker === selectedStock.ticker)} onClose={() => setSelectedStock(null)} onTrade={handleTrade} />
         )}
       </AnimatePresence>
     </div>

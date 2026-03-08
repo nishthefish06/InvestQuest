@@ -46,6 +46,7 @@ function AppContent() {
             <Route path="/quest/:worldId/:questId" element={<QuestPlay />} />
             <Route path="/budget-game" element={<BudgetGame />} />
             <Route path="/arena" element={<Arena />} />
+            <Route path="/arena/:matchId" element={<Arena />} />
             <Route path="/crypto-game" element={<CryptoGame />} />
             <Route path="/community" element={<Community />} />
             <Route path="/profile" element={<Profile />} />

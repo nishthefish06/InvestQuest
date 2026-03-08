@@ -42,8 +42,11 @@ export default async function handler(req, res) {
       const friends = target.gameState?.friends || [];
       const requests = target.gameState?.friendRequests || [];
       
-      if (friends.some(f => f.username === currentUser)) return res.status(400).json({ error: 'Already friends' });
-      if (requests.includes(currentUser)) return res.status(400).json({ error: 'Request already sent' });
+      const isFriend = friends.some(f => f.username.toLowerCase() === currentUser.toLowerCase());
+      const isRequested = requests.some(r => r.toLowerCase() === currentUser.toLowerCase());
+
+      if (isFriend) return res.status(400).json({ error: 'Already friends' });
+      if (isRequested) return res.status(400).json({ error: 'Request already sent' });
 
       await db.collection('users').updateOne(
         { _id: target._id },
@@ -76,7 +79,7 @@ export default async function handler(req, res) {
         db.collection('users').updateOne(
           { _id: sender._id },
           { 
-            $pull: { 'gameState.friendRequests': targetExactName },
+            $pull: { 'gameState.friendRequests': { $regex: new RegExp(`^${targetExactName}$`, 'i') } },
             $addToSet: { 'gameState.friends': newFriendForCurrent }
           }
         ),
@@ -85,7 +88,7 @@ export default async function handler(req, res) {
           { 
             $addToSet: { 'gameState.friends': newFriendForTarget },
             // Also clean up if target had sent a request to current
-            $pull: { 'gameState.friendRequests': currentUser }
+            $pull: { 'gameState.friendRequests': { $regex: new RegExp(`^${currentUser}$`, 'i') } }
           }
         )
       ]);
@@ -96,7 +99,7 @@ export default async function handler(req, res) {
     else if (action === 'reject') {
       await db.collection('users').updateOne(
         { _id: sender._id },
-        { $pull: { 'gameState.friendRequests': targetExactName } }
+        { $pull: { 'gameState.friendRequests': { $regex: new RegExp(`^${targetExactName}$`, 'i') } } }
       );
       return res.status(200).json({ ok: true, message: 'Request rejected' });
     }
@@ -105,11 +108,11 @@ export default async function handler(req, res) {
       await Promise.all([
         db.collection('users').updateOne(
           { _id: sender._id },
-          { $pull: { 'gameState.friends': { username: targetExactName } } }
+          { $pull: { 'gameState.friends': { username: { $regex: new RegExp(`^${targetExactName}$`, 'i') } } } }
         ),
         db.collection('users').updateOne(
           { _id: target._id },
-          { $pull: { 'gameState.friends': { username: currentUser } } }
+          { $pull: { 'gameState.friends': { username: { $regex: new RegExp(`^${currentUser}$`, 'i') } } } }
         )
       ]);
       return res.status(200).json({ ok: true, message: 'Friend removed' });

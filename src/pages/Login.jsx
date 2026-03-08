@@ -38,7 +38,7 @@ export default function Login() {
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
         style={{ textAlign: 'center', marginBottom: 40 }}>
         <div style={{ marginBottom: 12, animation: 'float 3s ease-in-out infinite' }}>
-          <img src="/logo.png" alt="InvestQuest Logo" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+          <img src="/logo.png" alt="InvestQuest Logo" style={{ width: 64, height: 64, objectFit: 'contain', display: 'block', margin: '0 auto' }} />
         </div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 900, letterSpacing: '-0.02em' }}>InvestQuest</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: 4 }}>Master money through games</p>
