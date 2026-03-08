@@ -185,7 +185,7 @@ export default function CryptoGame() {
           ⛏️
         </div>
         <div style={{ flex: 1 }}>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 800 }}>Crypto Field</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 800 }}>Crypto Chaos</h1>
           <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Crypto Caverns</p>
         </div>
         <div style={{ textAlign: 'right' }}>
