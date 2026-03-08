@@ -74,7 +74,6 @@ export default function Dashboard() {
   return (
     <div style={{
       minHeight: '100dvh',
-      background: `radial-gradient(circle at center, ${bgLight} 0%, ${bgDark} 100%)`,
       color: headerTeal,
       position: 'relative',
       overflowX: 'hidden',

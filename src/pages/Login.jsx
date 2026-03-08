@@ -31,7 +31,6 @@ export default function Login() {
   return (
     <div style={{
       minHeight: '100dvh', width: '100vw', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: `radial-gradient(circle at 50% 50%, ${bgLight} 0%, ${bgDark} 100%)`,
       position: 'fixed', top: 0, left: 0, overflowY: 'auto'
     }}>
       <div style={{

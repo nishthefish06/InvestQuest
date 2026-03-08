@@ -22,17 +22,17 @@ function DecorCoins({ coins }) {
           src="/coin.png"
           alt=""
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ 
-            opacity: 1, 
+          animate={{
+            opacity: 1,
             scale: 1,
             y: [0, -10, 0],
             rotate: [coin.rotate, coin.rotate + 5, coin.rotate]
           }}
-          transition={{ 
-            duration: 4, 
-            repeat: Infinity, 
+          transition={{
+            duration: 4,
+            repeat: Infinity,
             ease: "easeInOut",
-            delay: coin.delay 
+            delay: coin.delay
           }}
           style={{
             position: 'absolute',
@@ -78,9 +78,9 @@ export default function WorldHub() {
     if (worldId === 'crypto') return 'Crypto Chaos';
     return 'Game';
   };
-  
+
   const bgLight = '#87a992'; // Matches the sage green background in design
-  const bgDark = '#56755f';  
+  const bgDark = '#56755f';
   const innerCard = 'rgba(255,255,255,0.2)';
   const trackColor = '#4e6d55'; // Darker inset background
   const pillBtnColors = 'linear-gradient(180deg, #6c9c76 0%, #4b7d56 100%)';
@@ -100,14 +100,14 @@ export default function WorldHub() {
       </div>
 
       <div className="page-content" style={{ position: 'relative', zIndex: 1, padding: '24px 20px' }}>
-        
+
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20, marginTop: 10 }}>
           <button onClick={() => navigate('/')} style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
             <ArrowLeft size={28} color="#111" />
           </button>
-          
-          <div style={{ 
+
+          <div style={{
             width: 72, height: 72, borderRadius: 16, overflow: 'hidden', flexShrink: 0,
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)', background: world.gradient
           }}>
@@ -129,9 +129,9 @@ export default function WorldHub() {
         </div>
 
         {/* Completion Bar */}
-        <div style={{ 
-          background: innerCard, 
-          borderRadius: 9999, 
+        <div style={{
+          background: innerCard,
+          borderRadius: 9999,
           padding: '12px 16px',
           marginBottom: 20,
           boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
@@ -140,20 +140,20 @@ export default function WorldHub() {
             <span style={{ fontSize: '0.8125rem', fontWeight: 800 }}>Completion</span>
             <span style={{ fontSize: '0.8125rem', fontWeight: 800 }}>{worldProgress[worldId]}%</span>
           </div>
-          <div style={{ 
-            height: 12, 
-            background: trackColor, 
+          <div style={{
+            height: 12,
+            background: trackColor,
             borderRadius: 9999,
             boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)'
           }}>
-            <motion.div 
-              style={{ 
-                height: '100%', 
+            <motion.div
+              style={{
+                height: '100%',
                 width: `${worldProgress[worldId]}%`,
                 background: '#5cb874', // Lighter interior green
                 borderRadius: 9999,
                 boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.4), 0 0 8px rgba(92,184,116,0.6)'
-              }} 
+              }}
             />
           </div>
         </div>
@@ -161,10 +161,10 @@ export default function WorldHub() {
         {/* Play Game CTA */}
         <motion.button whileTap={{ scale: 0.96 }}
           onClick={() => navigate(getGameRoute())}
-          style={{ 
-            width: '100%', 
-            padding: '18px', 
-            borderRadius: 9999, 
+          style={{
+            width: '100%',
+            padding: '18px',
+            borderRadius: 9999,
             background: pillBtnColors,
             color: 'white',
             fontWeight: 800,
@@ -209,7 +209,7 @@ export default function WorldHub() {
                   flexDirection: isOdd ? 'row' : 'row-reverse',
                   paddingLeft: isOdd ? 24 : 0, paddingRight: isOdd ? 0 : 24,
                 }}>
-                
+
                 <div onClick={() => canPlay && (quest.type === 'sim' ? navigate(getGameRoute()) : navigate(`/quest/${worldId}/${quest.id}`))}
                   style={{
                     width: 70, height: 70, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -218,7 +218,7 @@ export default function WorldHub() {
                     filter: quest.status === 'completed' ? 'sepia(1) hue-rotate(80deg) saturate(2)' : 'none', // Tint green if completed
                     transition: 'all 0.25s'
                   }}>
-                  <img src="/coin.png" alt="Quest Node" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.15))' }} />
+                  <img src="/flat-coin.png" alt="Quest Node" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.15))' }} />
                 </div>
 
                 <div style={{ flex: 1, textAlign: isOdd ? 'left' : 'right' }}>

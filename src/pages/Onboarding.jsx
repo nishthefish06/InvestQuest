@@ -70,7 +70,6 @@ export default function Onboarding() {
   return (
     <div style={{
       minHeight: '100dvh', width: '100vw', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: `radial-gradient(circle at center, ${bgLight} 0%, ${bgDark} 100%)`,
       position: 'fixed', top: 0, left: 0, overflowY: 'auto'
     }}>
       <FloatingCoins />
