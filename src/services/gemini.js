@@ -9,19 +9,18 @@ const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 /**
  * Wraps an async fn with exponential backoff for 429 rate-limit errors.
- * Will retry up to `maxRetries` times before throwing.
+ * Caps wait time to 8s and limits retries to 1 so the UI never freezes.
  */
-async function withRetry(fn, maxRetries = 3) {
+async function withRetry(fn, maxRetries = 1) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (err) {
       const isRateLimit = err.message?.includes('429') || err.message?.includes('Resource has been exhausted') || err.message?.includes('Please retry');
       if (isRateLimit && attempt < maxRetries) {
-        // Parse retry delay from error if available (Google hints it)
-        const matchSeconds = err.message?.match(/retry in ([\d.]+)s/i);
-        const waitMs = matchSeconds ? parseFloat(matchSeconds[1]) * 1000 : (2 ** attempt) * 5000;
-        console.warn(`[Gemini] Rate limited. Waiting ${Math.round(waitMs / 1000)}s before retry ${attempt + 1}/${maxRetries}...`);
+        // Cap at 8s regardless of what Google says — we can't freeze the UI
+        const waitMs = 8000;
+        console.warn(`[Gemini] Rate limited. Waiting 8s before retry...`);
         await new Promise(r => setTimeout(r, waitMs));
       } else {
         throw err;
@@ -111,7 +110,13 @@ Instructions:
       throw new Error('Unknown game type');
     }
 
-    const result = await withRetry(() => model.generateContent(prompt));
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT: Gemini took too long. Please retry.')), 15000)
+    );
+    const result = await Promise.race([
+      withRetry(() => model.generateContent(prompt)),
+      timeout,
+    ]);
     const response = await result.response;
     return response.text();
 
@@ -122,7 +127,11 @@ Instructions:
     }
     if (error.message?.includes('429') || error.message?.includes('Resource has been exhausted') || error.message?.includes('Please retry')) {
       console.error('GEMINI ERROR: Rate limit persists after retries.');
-      return "Wow! You've got me thinking too hard. 🧠 I tried a few times but Google's rate limit is holding on. Try again in 60 seconds!";
+      return "Wow! You've got me thinking too hard. 🧠 Google's rate limit is holding on — click Try Again in 30 seconds!";
+    }
+    if (error.message?.includes('TIMEOUT')) {
+      console.error('GEMINI ERROR: Request timed out.');
+      return "Wow! You've got me thinking too hard. 🧠 The request timed out — click Try Again in a moment!";
     }
     console.error('GEMINI ERROR:', error.message, error.status);
     return "Looks like my AI brain is taking a quick nap! 😴 Try again later!";
