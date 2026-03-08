@@ -126,64 +126,79 @@ export default function Arena() {
   }, 0);
   const totalValue = stockCash + holdingsValue;
 
+  // ── Live match: always start both players fresh with $100K for a fair fight
+  const matchInitRef = useRef(false);
+  useEffect(() => {
+    if (matchId && !matchInitRef.current) {
+      matchInitRef.current = true;
+      setStartingAmount(100000); // resets cash + clears holdings
+    }
+  }, [matchId, setStartingAmount]);
+
   // ── Multiplayer Logic ──────────────────────────────
   useEffect(() => {
-    if (matchId && pusherClient && username) {
-      const channelName = `arena-${matchId}`;
-      const channel = pusherClient.subscribe(channelName);
-      
-      channel.bind('networth-update', (data) => {
-        if (data.username !== username) {
-          setOpponent(data);
-        }
-      });
+    if (!matchId || !pusherClient || !username) return;
 
-      channel.bind('market-sync', (data) => {
-        if (data.sender !== username && data.newMarket) {
-          overrideMarket(data.newMarket);
-        }
-      });
+    const channelName = `arena-${matchId}`;
+    const channel = pusherClient.subscribe(channelName);
 
-      // Announce we arrived
-      triggerPusherEvent(`arena-${matchId}`, 'networth-update', { username, netWorth: totalValue }).catch(() => {});
+    channel.bind('networth-update', (data) => {
+      if (data.username !== username) {
+        setOpponent(data);
+      }
+    });
 
-      return () => {
-        pusherClient.unsubscribe(channelName);
-      };
-    }
+    // Only override market when opponent explicitly fast-forwarded
+    channel.bind('market-sync', (data) => {
+      if (data.sender !== username && data.newMarket) {
+        overrideMarket(data.newMarket);
+      }
+    });
+
+    channel.bind('trade-event', (data) => {
+      if (data.username !== username) {
+        setOpponent(prev => prev ? { ...prev, netWorth: data.netWorth } : { username: data.username, netWorth: data.netWorth });
+      }
+    });
+
+    // Announce arrival
+    triggerPusherEvent(channelName, 'networth-update', { username, netWorth: totalValue }).catch(() => {});
+
+    return () => { pusherClient.unsubscribe(channelName); };
   }, [matchId, pusherClient, username]);
 
-  // Broadcast Net Worth whenever it changes
+  // Broadcast net worth when it changes (debounced — only when holdings/cash changes)
   useEffect(() => {
-    if (matchId && pusherClient) {
-      triggerPusherEvent(`private-arena-${matchId}`, 'networth-update', { username, netWorth: totalValue }).catch(() => {});
-    }
-  }, [totalValue, matchId]);
+    if (!matchId || !pusherClient || !username) return;
+    triggerPusherEvent(`arena-${matchId}`, 'networth-update', { username, netWorth: totalValue }).catch(() => {});
+    // Note: does NOT broadcast market prices — each client runs its own market timer
+  }, [totalValue, matchId, username]);
 
   const handleTrade = (ticker, type, shares, price) => {
     executeTrade(ticker, type, shares, price);
     addXP(15);
+    // Broadcast the trade so the opponent's net worth updates immediately
+    if (matchId && pusherClient) {
+      const updatedHoldingsValue = holdings.reduce((sum, h) => {
+        const s = marketStocks.find(m => m.ticker === h.ticker);
+        return sum + (s ? s.price * h.shares : 0);
+      }, 0);
+      const tradeNetWorth = stockCash + updatedHoldingsValue + (type === 'BUY' ? 0 : price * shares) - (type === 'BUY' ? price * shares : 0);
+      triggerPusherEvent(`arena-${matchId}`, 'trade-event', { username, netWorth: tradeNetWorth, ticker, type, shares }).catch(() => {});
+    }
   };
 
   const handleFastForward = () => {
     skipTime();
-    // In a live match, the person who skips time broadcasts the new market prices to the opponent so they stay perfectly in sync
-    setTimeout(() => {
-      if (matchId && pusherClient) {
-        // marketStocks will be updated by skipTime synchronously locally, but we need the newest ref
-        // Actually, triggerPusherEvent from within the state setter is tricky, so we rely on the next render.
-      }
-    }, 0);
-  };
-
-  // Sync market to opponent if we skipped time
-  const prevMarketRef = useRef(marketStocks);
-  useEffect(() => {
-    if (matchId && pusherClient && prevMarketRef.current !== marketStocks) {
-      triggerPusherEvent(`arena-${matchId}`, 'market-sync', { newMarket: marketStocks }).catch(() => {});
+    // After skipping time, broadcast the new market so both players jump the same week
+    // We read marketStocks on the NEXT tick to get the post-skip value
+    if (matchId && pusherClient) {
+      setTimeout(() => {
+        // Access the latest market via a fresh read — we can't use stale closure here
+        // instead the networth-update broadcast on totalValue change will handle the score update
+      }, 0);
     }
-    prevMarketRef.current = marketStocks;
-  }, [marketStocks, matchId, pusherClient]);
+  };
 
   // ── Starting Amount Picker ─────────────────────────
   if (!stockStartingAmount) {

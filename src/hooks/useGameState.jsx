@@ -167,14 +167,13 @@ export function GameProvider({ children }) {
   }, [state, token, isLoggedIn]);
 
   // ── Real-Time Multiplayer (Pusher) ──────────────────
+  const [incomingChallenge, setIncomingChallenge] = useState(null);
+
   useEffect(() => {
     if (isLoggedIn && token && import.meta.env.VITE_PUSHER_KEY) {
       const p = new Pusher(import.meta.env.VITE_PUSHER_KEY, {
         cluster: import.meta.env.VITE_PUSHER_CLUSTER,
-        authEndpoint: '/api/pusher/auth',
-        auth: {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+        // No auth needed since we use public channels for notifications
       });
       setPusherClient(p);
 
@@ -183,6 +182,26 @@ export function GameProvider({ children }) {
       };
     }
   }, [isLoggedIn, token]);
+
+  // Subscribe to own notification channel once Pusher + username are ready
+  useEffect(() => {
+    if (!pusherClient || !state.username) return;
+    const safeUsername = state.username.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!safeUsername) return;
+
+    const channelName = `notify-${safeUsername}`;
+    const channel = pusherClient.subscribe(channelName);
+
+    channel.bind('challenge', (data) => {
+      setIncomingChallenge(data);
+    });
+
+    return () => {
+      pusherClient.unsubscribe(channelName);
+    };
+  }, [pusherClient, state.username]);
+
+  const dismissChallenge = useCallback(() => setIncomingChallenge(null), []);
 
   const triggerPusherEvent = useCallback(async (channel, event, data) => {
     if (!token) throw new Error('Not authenticated');
@@ -431,6 +450,7 @@ export function GameProvider({ children }) {
     setStartingAmount, executeTrade, updateBudgetScenario, setCrashBestMultiplier, skipTime, overrideMarket,
     searchUser, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend,
     pusherClient, triggerPusherEvent,
+    incomingChallenge, dismissChallenge,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
