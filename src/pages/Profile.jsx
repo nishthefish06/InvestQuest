@@ -329,7 +329,8 @@ export default function Profile() {
               <p style={{ fontSize: '0.875rem', color: headerTeal, fontWeight: 700, opacity: 0.8 }}>You don't have any friends yet.<br/>Click "Add Friend" to search!</p>
             </div>
           ) : (
-            friends?.map((buddy) => (
+            friends?.filter((buddy, index, self) => index === self.findIndex(f => f.username === buddy.username))
+              .map((buddy) => (
               <div key={buddy.username} style={{ background: cardSage, padding: '14px 16px', borderRadius: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ position: 'relative' }}>

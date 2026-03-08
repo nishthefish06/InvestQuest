@@ -451,7 +451,9 @@ export function GameProvider({ children }) {
     setState((s) => ({
       ...s,
       friendRequests: s.friendRequests.filter(req => req !== targetUsername),
-      friends: [...s.friends, data.friend]
+      friends: s.friends.find(f => f.username === data.friend.username)
+        ? s.friends
+        : [...s.friends, data.friend]
     }));
   }, [token]);
 
