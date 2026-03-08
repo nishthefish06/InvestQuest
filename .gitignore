@@ -26,5 +26,3 @@ dist-ssr
 .vercel
 .env
 .env*.local
-MONGODB_URI
-VITE_GEMINI_API_KEY
