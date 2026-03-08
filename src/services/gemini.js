@@ -245,6 +245,26 @@ Instructions:
 3. If they got rugged: be a comforting friend, then explain what the real-world lesson means for avoiding this in real life.
 4. End with one concrete takeaway they can apply to real crypto investing. Include emojis!
       `;
+    } else if (gameType === 'portfolio_analysis') {
+      const { holdings, totalValue, startingAmount, totalPnl, cashRemaining, tradeCount } = gameState;
+      prompt = `
+You are a sharp, encouraging stock trading coach in InvestQuest, a gamified finance learning app.
+The player's current paper trading portfolio:
+
+Holdings: ${holdings}
+Total portfolio value: $${totalValue}
+Starting capital: $${Number(startingAmount).toLocaleString()}
+Overall P&L: ${totalPnl}%
+Cash remaining: $${cashRemaining}
+Number of positions: ${tradeCount}
+
+Instructions:
+1. 3-4 sentences max. Be direct and specific — reference their actual holdings and P&L.
+2. If P&L is positive: hype them up AND flag any concentration risk (too much in one stock).
+3. If P&L is negative: be a supportive coach, identify which position is dragging them down, suggest a strategy.
+4. If cash > 50% of portfolio: gently challenge them to put that cash to work.
+5. End with one concrete next move they should consider. Include emojis!
+      `;
     } else {
       throw new Error('Unknown game type');
     }
