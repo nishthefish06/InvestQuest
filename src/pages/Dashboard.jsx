@@ -65,11 +65,11 @@ export default function Dashboard() {
 
   const bgLight = '#4d7f5c'; // Darker sage green base
   const bgDark = '#416a4d';  // Even darker sage for gradient
-  const amber = '#f39c12';
+  const amber = '#fbb03b';
   const headerTeal = '#dceddd'; // Lighter text color to contrast dark background
   const cardSage = '#385c43'; // Darker card background
   const trackSage = 'rgba(255,255,255,0.1)';
-  const progressBlue = '#f39c12'; 
+  const progressBlue = '#fbb03b'; 
 
   return (
     <div style={{
@@ -104,7 +104,7 @@ export default function Dashboard() {
             }}
           >
             <Flame size={20} color={amber} fill={amber} />
-            <span style={{ fontWeight: 800, color: '#f39c12', fontSize: '1rem' }}>{streak} days</span>
+            <span style={{ fontWeight: 800, color: '#fbb03b', fontSize: '1rem' }}>{streak} days</span>
           </motion.div>
         </div>
 
@@ -154,7 +154,17 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Our World Button */}
+        {/* Our World Title */}
+        <div style={{ 
+          background: '#dceddd', padding: '6px 20px', borderRadius: 9999,
+          fontSize: '1.125rem', fontWeight: 900, color: cardSage,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          width: 'fit-content', margin: '0 auto 12px'
+        }}>
+          our world
+        </div>
+
+        {/* Our World Box */}
         <div 
           style={{ 
             width: '100%', background: cardSage, borderRadius: 32, 
@@ -163,20 +173,17 @@ export default function Dashboard() {
             boxShadow: '0 12px 24px rgba(0,0,0,0.08)'
           }}
         >
-          <div style={{ 
-            background: '#dceddd', padding: '6px 20px', borderRadius: 9999,
-            fontSize: '1.125rem', fontWeight: 900, color: cardSage,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-          }}>
-            our world
-          </div>
-
-          <div style={{ position: 'relative', height: 210, width: 280, marginTop: 16 }}>
-            {/* SVG Connecting Lines */}
-            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}>
-              <line x1="55" y1="55" x2="225" y2="55" stroke="#21402a" strokeWidth="2" />
-              <line x1="55" y1="55" x2="140" y2="155" stroke="#21402a" strokeWidth="2" />
-              <line x1="225" y1="55" x2="140" y2="155" stroke="#21402a" strokeWidth="2" />
+          <div style={{ position: 'relative', height: 300, width: 280, margin: '0 auto' }}>
+            {/* SVG Winding Path */}
+            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none', overflow: 'visible' }}>
+              <path 
+                d="M 5 20 Q 40 40, 80 80 Q 165 95, 215 130 T 95 220 Q 80 245, 65 280" 
+                stroke="#21402a" 
+                strokeWidth="3" 
+                strokeDasharray="8 6" 
+                strokeLinecap="round" 
+                fill="none"
+              />
             </svg>
 
             {/* Top Left - Budget */}
@@ -184,7 +191,7 @@ export default function Dashboard() {
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/world/budget')}
               style={{
-                position: 'absolute', top: 0, left: 0, width: 110, height: 110, 
+                position: 'absolute', top: 25, left: 25, width: 110, height: 110, 
                 borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', zIndex: 2,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
               }}
@@ -192,12 +199,12 @@ export default function Dashboard() {
               <img src="/budget-map.png" alt="Budget Boardwalk" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </motion.div>
 
-            {/* Top Right - Stocks */}
+            {/* Middle Right - Stocks */}
             <motion.div 
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/world/stocks')}
               style={{
-                position: 'absolute', top: 0, right: 0, width: 110, height: 110, 
+                position: 'absolute', top: 75, right: 10, width: 110, height: 110, 
                 borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', zIndex: 2,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
               }}
@@ -205,12 +212,12 @@ export default function Dashboard() {
               <img src="/stocks-map.png" alt="Stock Market Shore" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </motion.div>
 
-            {/* Bottom Center - Crypto */}
+            {/* Bottom Left - Crypto */}
             <motion.div 
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/world/crypto')}
               style={{
-                position: 'absolute', top: 100, left: 85, width: 110, height: 110, 
+                position: 'absolute', top: 165, left: 40, width: 110, height: 110, 
                 borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', zIndex: 2,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
               }}
@@ -221,10 +228,11 @@ export default function Dashboard() {
         </div>
 
         {/* Market Movers */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 16 }}>
           <div style={{ 
-            background: cardSage, padding: '6px 14px', borderRadius: 12, 
-            fontSize: '1rem', fontWeight: 900, color: headerTeal 
+            background: '#dceddd', padding: '6px 20px', borderRadius: 9999, 
+            fontSize: '1.125rem', fontWeight: 900, color: cardSage,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
           }}>
             Market Movers
           </div>
@@ -257,8 +265,9 @@ export default function Dashboard() {
         {/* Leaderboard */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ 
-            background: cardSage, padding: '6px 14px', borderRadius: 12, 
-            fontSize: '1rem', fontWeight: 900, color: headerTeal 
+            background: '#dceddd', padding: '6px 20px', borderRadius: 9999, 
+            fontSize: '1.125rem', fontWeight: 900, color: cardSage,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
           }}>
             Leaderboard
           </div>
@@ -286,7 +295,7 @@ export default function Dashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7 }}>{p.xp.toLocaleString()} XP</span>
                   <span style={{ fontSize: '0.75rem', opacity: 0.4 }}>•</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f39c12' }}>{p.portfolioReturn}</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fbb03b' }}>{p.portfolioReturn}</span>
                 </div>
               </div>
             </div>

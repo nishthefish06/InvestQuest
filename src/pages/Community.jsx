@@ -71,7 +71,7 @@ export default function Community() {
   // Colors matching the Dashboard aesthetic
   const bgLight = '#4d7f5c'; // Darker sage green base
   const bgDark = '#416a4d';  // Even darker sage for gradient
-  const amber = '#f39c12';
+  const amber = '#fbb03b';
   const headerTeal = '#dceddd'; // Lighter text color to contrast dark background
   const cardSage = '#385c43'; // Darker card background
   const overlayBg = 'rgba(65, 106, 77, 0.9)'; // Slightly darker/blurrier for modal

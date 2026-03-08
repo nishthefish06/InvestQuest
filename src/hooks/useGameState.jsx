@@ -37,7 +37,7 @@ const INITIAL_STATE = {
     { id: 'first_trade', name: 'First Trade', icon: '📈', color: '#10b981', earned: false },
     { id: 'budget_master', name: 'Budget Pro', icon: '🏖️', color: '#385c43', earned: false },
     { id: 'crypto_miner', name: 'Crypto Miner', icon: '⛏️', color: '#f59e0b', earned: false },
-    { id: 'all_worlds', name: 'Explorer', icon: '🌍', color: '#f39c12', earned: false },
+    { id: 'all_worlds', name: 'Explorer', icon: '🌍', color: '#fbb03b', earned: false },
     { id: 'generous', name: 'Generous', icon: '💝', color: '#ec4899', earned: false },
     { id: 'streak30', name: '30-Day Streak', icon: '👑', color: '#f59e0b', earned: false },
   ],

@@ -7,8 +7,8 @@ import { WORLDS, DAILY_GOALS } from '../data/skills';
 const bgLight = '#4d7f5c'; // Darker sage green base
 const bgDark = '#416a4d';  // Even darker sage for gradient
 const headerTeal = '#dceddd'; // Lighter text color to contrast dark background
-const amber = '#f39c12';
-const amberDark = '#d68910';
+const amber = '#fbb03b';
+const amberDark = '#e8a838';
 const cardSage = '#385c43'; // Darker card background
 const textMuted = 'rgba(255,255,255,0.7)';
 

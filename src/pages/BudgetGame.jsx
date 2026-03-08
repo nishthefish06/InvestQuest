@@ -279,7 +279,7 @@ export default function BudgetGame() {
   // ── Event Phase (Gemini Life Event) ─────────────────────────────────
   if (phase === 'event') {
     const urgencyColors = { immediate: '#dc2626', this_week: 'var(--accent-orange)', optional: 'var(--accent-cyan)' };
-    const categoryColors = { emergency: '#dc2626', opportunity: '#52805e', routine: '#385c43', social: '#f39c12' };
+    const categoryColors = { emergency: '#dc2626', opportunity: '#52805e', routine: '#385c43', social: '#fbb03b' };
 
     return (
       <div className="page-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh', justifyContent: 'center', paddingBottom: 40, position: 'relative' }}>
@@ -334,12 +334,11 @@ export default function BudgetGame() {
               style={{ textAlign: 'center', padding: 40 }}>
               <div style={{
                 width: 64, height: 64, borderRadius: 20, margin: '0 auto 20px',
-                background: 'linear-gradient(135deg, #385c43, #2d4737)',
+                background: 'transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 0 30px rgba(56,92,67,0.4)',
                 animation: 'pulse 1.5s ease-in-out infinite',
               }}>
-                <Sparkles size={28} color="white" />
+                <img src="/coin.png" alt="" style={{ width: 48, height: 48 }} />
               </div>
               <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.1rem', marginBottom: 8 }}>
                 Life happens…
@@ -371,7 +370,7 @@ export default function BudgetGame() {
                   {simEvent.urgency?.replace('_', ' ')}
                 </div>
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                  <Sparkles size={11} /> AI Generated
+                  <Sparkles size={14} /> AI Generated
                 </div>
               </div>
 
@@ -488,7 +487,7 @@ export default function BudgetGame() {
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Needs (Goal: 50%)</span>
-              <span style={{ fontSize: '0.875rem', color: (needs / activeScenario.income) > 0.55 ? '#f39c12' : '#52805e' }}>{((needs / activeScenario.income) * 100).toFixed(1)}%</span>
+              <span style={{ fontSize: '0.875rem', color: (needs / activeScenario.income) > 0.55 ? '#fbb03b' : '#52805e' }}>{((needs / activeScenario.income) * 100).toFixed(1)}%</span>
             </div>
             <div style={{ height: 10, background: 'var(--bg-primary)', borderRadius: 999 }}>
               <div style={{ height: '100%', borderRadius: 999, background: '#dc2626', width: `${Math.min(100, (needs / activeScenario.income) * 100)}%` }} />
@@ -498,7 +497,7 @@ export default function BudgetGame() {
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Wants (Goal: 30%)</span>
-              <span style={{ fontSize: '0.875rem', color: (wants / activeScenario.income) > 0.35 ? '#f39c12' : '#52805e' }}>{((wants / activeScenario.income) * 100).toFixed(1)}%</span>
+              <span style={{ fontSize: '0.875rem', color: (wants / activeScenario.income) > 0.35 ? '#fbb03b' : '#52805e' }}>{((wants / activeScenario.income) * 100).toFixed(1)}%</span>
             </div>
             <div style={{ height: 10, background: 'var(--bg-primary)', borderRadius: 999 }}>
               <div style={{ height: '100%', borderRadius: 999, background: 'var(--accent-cyan)', width: `${Math.min(100, (wants / activeScenario.income) * 100)}%` }} />
@@ -508,7 +507,7 @@ export default function BudgetGame() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Savings (Goal: 20%)</span>
-              <span style={{ fontSize: '0.875rem', color: (saves / activeScenario.income) < 0.15 ? '#f39c12' : '#52805e' }}>{((saves / activeScenario.income) * 100).toFixed(1)}%</span>
+              <span style={{ fontSize: '0.875rem', color: (saves / activeScenario.income) < 0.15 ? '#fbb03b' : '#52805e' }}>{((saves / activeScenario.income) * 100).toFixed(1)}%</span>
             </div>
             <div style={{ height: 10, background: 'var(--bg-primary)', borderRadius: 999 }}>
               <div style={{ height: '100%', borderRadius: 999, background: '#52805e', width: `${Math.min(100, (saves / activeScenario.income) * 100)}%` }} />
@@ -576,7 +575,7 @@ export default function BudgetGame() {
               <span style={{ fontSize: '1.25rem' }}>{m.icon}</span>
               <div style={{ flex: 1 }}>
                 <p style={{ fontWeight: 600, fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {m.name} {m.isSurprise && <AlertCircle size={12} color="#f39c12" />}
+                  {m.name} {m.isSurprise && <AlertCircle size={12} color="#fbb03b" />}
                 </p>
                 <p style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>MANDATORY BILL</p>
               </div>
@@ -613,7 +612,7 @@ export default function BudgetGame() {
             <span>Your choices</span>
             <span>${choicesTotal}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: (mandatoryTotal + choicesTotal) > targetAmt ? '#f39c12' : 'var(--text-primary)', marginTop: 4, borderTop: '1px solid var(--border-glass)', paddingTop: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: (mandatoryTotal + choicesTotal) > targetAmt ? '#fbb03b' : 'var(--text-primary)', marginTop: 4, borderTop: '1px solid var(--border-glass)', paddingTop: 4 }}>
             <span style={{ fontWeight: 800 }}>Total</span>
             <span style={{ fontWeight: 800 }}>${mandatoryTotal + choicesTotal} / ${targetAmt}</span>
           </div>
@@ -625,22 +624,22 @@ export default function BudgetGame() {
   return (
     <div className="page-content" style={{ paddingBottom: 100 }}>
       {/* Tracker Bar Header Fixed */}
-      <div style={{ position: 'sticky', top: 0, background: 'var(--bg-primary)', zIndex: 10, paddingTop: 16, paddingBottom: 16, borderBottom: '1px solid var(--border-glass)' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, paddingTop: 16, paddingBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <button onClick={() => navigate('/world/budget')} style={{ padding: 4 }}><ArrowLeft size={22} color="var(--text-secondary)" /></button>
           <div style={{ flex: 1 }}>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.125rem', fontWeight: 800 }}>{activeScenario.title}</h1>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 800 }}>{activeScenario.title}</h1>
           </div>
           <div style={{ textAlign: 'right' }}>
             <p style={{ fontSize: '0.625rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Remaining Cash</p>
-            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.25rem', color: remaining >= 0 ? '#52805e' : '#f39c12' }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.25rem', color: remaining >= 0 ? '#52805e' : '#fbb03b' }}>
               ${Math.abs(remaining).toLocaleString()}{remaining < 0 && ' over'}
             </p>
           </div>
         </div>
 
         {/* 50/30/20 Progress Bar */}
-        <div style={{ height: 16, background: 'var(--bg-card)', borderRadius: 8, display: 'flex', overflow: 'hidden', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
+        <div style={{ height: 16, borderRadius: 8, display: 'flex', overflow: 'hidden', border: '2px solid #1e3a28' }}>
           <div style={{ width: `${(needs / activeScenario.income) * 100}%`, background: '#dc2626', transition: 'width 0.3s ease' }} />
           <div style={{ width: `${(wants / activeScenario.income) * 100}%`, background: '#06b6d4', transition: 'width 0.3s ease' }} />
           <div style={{ width: `${(saves / activeScenario.income) * 100}%`, background: 'transparent', transition: 'width 0.3s ease' }} />
@@ -653,7 +652,7 @@ export default function BudgetGame() {
       </div>
 
       <div style={{ paddingTop: 24 }}>
-        {renderGroup('Essentials (Needs)', 'need', '#f39c12', targetNeeds)}
+        {renderGroup('Essentials (Needs)', 'need', '#fbb03b', targetNeeds)}
         {renderGroup('Lifestyle (Wants)', 'want', '#06b6d4', targetWants)}
         {renderGroup('Future (Savings)', 'save', '#52805e', targetSaves)}
 

@@ -66,10 +66,10 @@ export default function GeminiFeedback({ gameType, gameState }) {
       <div style={{ position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <div style={{ 
-            background: 'var(--gradient-primary)', borderRadius: '50%', padding: 6,
+            borderRadius: '50%', padding: 6,
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
-            <Sparkles size={14} color="white" />
+            <img src="/coin.png" alt="" style={{ width: 20, height: 20 }} />
           </div>
           <span style={{ 
             fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.875rem',

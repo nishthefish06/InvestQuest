@@ -25,8 +25,8 @@ export default function Login() {
   const bgDark = '#416a4d';  // Even darker sage for gradient
   const headerTeal = '#dceddd'; // Lighter text color to contrast dark background
   const inputBg = 'rgba(255, 255, 255, 0.2)';
-  const amber = '#f39c12';
-  const amberDark = '#d68910';
+  const amber = '#fbb03b';
+  const amberDark = '#e8a838';
 
   return (
     <div style={{

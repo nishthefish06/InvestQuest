@@ -138,7 +138,7 @@
   --w-crypto-glow: 0 0 20px rgba(245, 158, 11, 0.3);
 
   /* Accents */
-  --accent-purple: #f39c12;
+  --accent-purple: #fbb03b;
   --accent-green: #10b981;
   --accent-red: #ef4444;
   --accent-orange: #f59e0b;
@@ -146,7 +146,7 @@
   --accent-pink: #ec4899;
 
   /* Gradients */
-  --gradient-purple: linear-gradient(135deg, #f39c12, #d68910);
+  --gradient-purple: linear-gradient(135deg, #fbb03b, #e8a838);
   --gradient-budget: linear-gradient(135deg, #385c43, #2d4a35);
   --gradient-stocks: linear-gradient(135deg, #10b981, #059669);
   --gradient-crypto: linear-gradient(135deg, #f59e0b, #d97706);

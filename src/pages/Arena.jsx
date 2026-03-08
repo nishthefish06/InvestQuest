@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameState } from '../hooks/useGameState';
 import { SIM_STOCKS, generatePriceHistory } from '../data/skills';
-import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, X, Briefcase, BarChart3, Users, Swords, Sparkles, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, X, Briefcase, BarChart3, Users, Swords, Sparkles, Loader2, ArrowLeft } from 'lucide-react';
 import { generateGameFeedback } from '../services/gemini';
 
 
@@ -327,7 +327,7 @@ export default function Arena() {
     const amounts = [
       { value: 10000, label: '$10K', desc: 'Conservative start', icon: '🌱', color: '#10b981' },
       { value: 50000, label: '$50K', desc: 'Balanced portfolio', icon: '📊', color: '#385c43' },
-      { value: 100000, label: '$100K', desc: 'Serious trader', icon: '💼', color: '#f39c12' },
+      { value: 100000, label: '$100K', desc: 'Serious trader', icon: '💼', color: '#fbb03b' },
       { value: 500000, label: '$500K', desc: 'Wall Street whale', icon: '🐋', color: '#f59e0b' },
     ];
     return (
@@ -473,8 +473,39 @@ export default function Arena() {
   }
 
   return (
-    <div className="page-content">
-      <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div className="page-content" style={{ position: 'relative' }}>
+      {/* Back button */}
+      <button 
+        onClick={() => window.history.back()}
+        style={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          background: 'var(--bg-card)',
+          border: '1.5px solid var(--border-glass)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          zIndex: 10,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'var(--bg-card-hover)';
+          e.currentTarget.style.transform = 'scale(1.05)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'var(--bg-card)';
+          e.currentTarget.style.transform = 'scale(1)';
+        }}
+      >
+        <ArrowLeft size={20} color="var(--text-primary)" />
+      </button>
+      
+      <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '60px' }}>
         <div>
           <h1 className="page-title">Trade 📊</h1>
           <p className="page-subtitle">Paper trading simulator — learn risk-free!</p>

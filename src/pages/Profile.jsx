@@ -67,7 +67,7 @@ export default function Profile() {
   // Colors matching the Dashboard aesthetic
   const bgLight = '#4d7f5c'; // Darker sage green base
   const bgDark = '#416a4d';  // Even darker sage for gradient
-  const amber = '#f39c12';
+  const amber = '#fbb03b';
   const headerTeal = '#dceddd'; // Lighter text color to contrast dark background
   const cardSage = '#385c43'; // Darker card background
   const overlayBg = 'rgba(65, 106, 77, 0.9)'; // Slightly darker/blurrier for modals
@@ -243,7 +243,7 @@ export default function Profile() {
           {[
             { val: lessonsCompleted || 0, label: 'Lessons', color: headerTeal },
             { val: `${streak || 0}🔥`, label: 'Streak', color: amber },
-            { val: `${friends?.length || 0}`, label: 'Friends', color: '#27ae60' },
+            { val: `${friends?.filter((buddy, index, self) => index === self.findIndex(f => f.username === buddy.username)).length || 0}`, label: 'Friends', color: '#27ae60' },
           ].map((s, i) => (
             <div key={i} style={{ background: cardSage, padding: '16px 8px', borderRadius: 24, textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
               <p style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '1.25rem', color: s.color }}>{s.val}</p>
