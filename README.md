@@ -1,16 +1,74 @@
-# React + Vite
+# InvestQuest 🪙
+### Gamified financial literacy, powered by Gemini AI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> **HackAI 2026** — NRVE Track · Best Use of Gemini API · Best Hack Built with Google Antigravity · Best Use of MongoDB Atlas
 
-Currently, two official plugins are available:
+**[🚀 Live Demo](https://invest-quest.vercel.app)** · Built with React, Gemini 2.5 Flash, MongoDB Atlas, and Pusher
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+InvestQuest teaches real financial skills — budgeting, stock trading, crypto — through games, not lectures. Every lesson is generated live by Gemini, every quiz is built from what you just learned, and every game session ends with personalised AI coaching on your actual results.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## How Gemini Powers the Experience
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Gemini isn't a chatbot here — it's the engine behind five distinct gameplay features:
+
+| Feature | What Gemini does |
+|---|---|
+| **AI Lesson Tutor** | Generates a unique interactive lesson per quest: streaming chat bubbles, tap-to-reveal facts, polls with personalised reactions |
+| **AI Quiz Generator** | Builds quiz questions from the lesson content just taught — not a static bank |
+| **AI Life Event Engine** | Before each budget round, generates a contextual life event (medical bill, job bonus, car repair) based on the player's current savings, debt, and event history |
+| **AI Game Coach** | After each mini-game, delivers feedback referencing the player's actual numbers |
+| **AI Portfolio Analyst** | Reviews live stock holdings in the trading simulator, flags concentration risk, suggests a next move |
+
+All AI calls live in `src/services/gemini.js`. Every function has a static fallback so the app never breaks without an API key.
+
+---
+
+## The Three Worlds
+
+**🏖️ Budget Boardwalk** — Gemini generates a surprise life event, you decide how to handle it, then allocate your monthly income across needs/wants/savings. Scored against the 50/30/20 rule.
+
+**📊 Stock Market Shore** — Paper trading simulator with 10 parody stocks, live price ticks, and real-time 1v1 multiplayer battles via Pusher. AI analyses your holdings on demand.
+
+**⛏️ Crypto Caverns** — Minesweeper-style crash game set in real historical scenarios (FTX Collapse, BTC Halving, DeFi Summer). Reveal cells to grow your multiplier, cash out before the rug pull.
+
+---
+
+## Tech Stack
+
+| | |
+|---|---|
+| Frontend | React 19, React Router v7, Framer Motion |
+| AI | Google Gemini 2.5 Flash |
+| Database | MongoDB Atlas (auth + persistent game state) |
+| Realtime | Pusher (1v1 multiplayer Arena) |
+| Backend | Vercel Serverless Functions |
+| Deployment | Vercel |
+
+---
+
+## Running Locally
+
+```bash
+npm install
+```
+
+Create `.env`:
+
+```env
+VITE_GEMINI_API_KEY=your_key
+MONGODB_URI=your_atlas_uri
+JWT_SECRET=any_secret
+VITE_PUSHER_APP_KEY=your_key
+VITE_PUSHER_CLUSTER=your_cluster
+PUSHER_APP_ID=your_id
+PUSHER_SECRET=your_secret
+```
+
+```bash
+npm run dev          # frontend at localhost:5173
+vercel dev           # frontend + API functions together
+```
