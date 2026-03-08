@@ -121,19 +121,28 @@ Instructions:
     return response.text();
 
   } catch (error) {
-    if (error.message?.includes('API_KEY_INVALID')) {
+    const msg = error.message || '';
+    const isRateLimit = 
+      error.status === 429 ||
+      msg.includes('429') || 
+      msg.includes('rate-limit') ||
+      msg.includes('rate limit') ||
+      msg.includes('Resource has been exhausted') || 
+      msg.includes('Please retry') ||
+      msg.includes('quota');
+    
+    if (isRateLimit) {
+      console.error('GEMINI ERROR: Rate limited.', msg.slice(0, 100));
+      return "Wow! You've got me thinking too hard. 🧠 Google's rate limit is holding on — click Try Again in 30 seconds!";
+    }
+    if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid')) {
       console.error('GEMINI ERROR: Invalid API Key.');
       return "Whoops! It looks like my API key is invalid or has been revoked. 🔐 Please update the VITE_GEMINI_API_KEY in your .env file!";
     }
-    if (error.message?.includes('429') || error.message?.includes('Resource has been exhausted') || error.message?.includes('Please retry')) {
-      console.error('GEMINI ERROR: Rate limit persists after retries.');
-      return "Wow! You've got me thinking too hard. 🧠 Google's rate limit is holding on — click Try Again in 30 seconds!";
-    }
-    if (error.message?.includes('TIMEOUT')) {
-      console.error('GEMINI ERROR: Request timed out.');
+    if (msg.includes('TIMEOUT')) {
       return "Wow! You've got me thinking too hard. 🧠 The request timed out — click Try Again in a moment!";
     }
-    console.error('GEMINI ERROR:', error.message, error.status);
+    console.error('GEMINI ERROR:', msg.slice(0, 200));
     return "Looks like my AI brain is taking a quick nap! 😴 Try again later!";
   }
 }
