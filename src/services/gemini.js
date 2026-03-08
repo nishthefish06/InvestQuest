@@ -41,7 +41,7 @@ export async function generateGameFeedback(gameType, gameState) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     let prompt = '';
 
@@ -171,7 +171,7 @@ export async function generateSimEvent(playerState) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const recent = (playerState.recentEvents || []).join(', ') || 'none';
 
     const prompt = `
@@ -248,7 +248,7 @@ export async function generateWeeklyRecap(weekData) {
 
   try {
     // Use Pro for the weekly recap — quality matters, and it's called infrequently
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const stats = weekData.playerStats || {};
     const friends = weekData.friends || [];
