@@ -354,9 +354,9 @@ export default function Profile() {
                 <Swords size={40} />
               </div>
               
-              <h3 style={{ fontWeight: 900, fontSize: '1.75rem', fontFamily: 'var(--font-display)', marginBottom: 12, color: headerTeal }}>Incoming Battle!</h3>
+              <h3 style={{ fontWeight: 900, fontSize: '1.75rem', fontFamily: 'var(--font-display)', marginBottom: 12, color: headerTeal }}>Challenge Request!</h3>
               <p style={{ color: headerTeal, fontSize: '1rem', marginBottom: 28, lineHeight: 1.4, fontWeight: 600 }}>
-                <strong style={{ color: headerTeal, fontWeight: 900 }}>{incomingChallenge.challenger}</strong> has challenged you to a live stock market battle!
+                <strong style={{ color: headerTeal, fontWeight: 900 }}>{incomingChallenge.challenger}</strong> has challenged you to a 3-minute stock trading battle!
               </p>
               
               <div style={{ display: 'flex', gap: 12 }}>

@@ -109,12 +109,15 @@ function TradeModal({ stock, holding, onClose, onTrade }) {
 
 export default function Arena() {
   const { matchId } = useParams();
-  const { username, stockCash, stockStartingAmount, holdings, executeTrade, addXP, setStartingAmount, marketStocks, skipTime, overrideMarket, pusherClient, triggerPusherEvent } = useGameState();
+  const { username, stockCash, stockStartingAmount, holdings, executeTrade, addXP, setStartingAmount, marketStocks, skipTime, overrideMarket, pusherClient, triggerPusherEvent, setInBattle, setMarketBroadcast } = useGameState();
   const [selectedStock, setSelectedStock] = useState(null);
   const [tab, setTab] = useState('market'); // market | portfolio | arena
   const [opponent, setOpponent] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(matchId ? 180 : null); // 3 min in seconds
+  const [timeLeft, setTimeLeft] = useState(null); // Don't start until both ready
   const [matchOver, setMatchOver] = useState(false);
+  const [playersReady, setPlayersReady] = useState(new Set()); // Track who's ready
+  const [gameStarted, setGameStarted] = useState(false);
+  const [isMarketHost, setIsMarketHost] = useState(false); // First player becomes market host
 
   const formatTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
@@ -131,23 +134,84 @@ export default function Arena() {
   const totalValue = stockCash + holdingsValue;
 
   // ── Live match: always start both players fresh with $100K for a fair fight
+  // ── Solo mode: Enable battle mode to prevent auto-save conflicts
   const matchInitRef = useRef(false);
   useEffect(() => {
+    // Enable battle mode for both solo and multiplayer
+    setInBattle(true);
+    
     if (matchId && !matchInitRef.current) {
       matchInitRef.current = true;
       setStartingAmount(100000); // resets cash + clears holdings
-      setTimeLeft(180);
       setMatchOver(false);
+      setGameStarted(false);
+      setTimeLeft(null); // Don't start countdown yet
     }
-  }, [matchId, setStartingAmount]);
+    return () => {
+      // Re-enable auto-save when leaving Arena
+      setInBattle(false);
+    };
+  }, [matchId, setStartingAmount, setInBattle]);
+
+  // ── Signal Player Ready ────────────────────────────
+  useEffect(() => {
+    if (!matchId || !pusherClient || !username || gameStarted) return;
+    
+    // Announce that this player is ready
+    triggerPusherEvent(`arena-${matchId}`, 'player-ready', { username }).catch(() => {});
+    
+    // Mark self as ready locally
+    setPlayersReady(prev => {
+      const newSet = new Set([...prev, username]);
+      // First player to join becomes the market host
+      if (newSet.size === 1 && newSet.has(username)) {
+        setIsMarketHost(true);
+      }
+      return newSet;
+    });
+  }, [matchId, pusherClient, username, gameStarted, triggerPusherEvent]);
+
+  // ── Start Game When Both Players Ready ─────────────
+  useEffect(() => {
+    if (!matchId || gameStarted || playersReady.size < 2) return;
+    
+    // Both players are in the arena - start the match!
+    setGameStarted(true);
+    setTimeLeft(180); // Start 3-minute countdown
+  }, [matchId, playersReady, gameStarted]);
 
   // ── Match Countdown Timer ──────────────────────────
   useEffect(() => {
-    if (!matchId || matchOver) return;
+    if (!matchId || matchOver || !gameStarted || timeLeft === null) return;
     if (timeLeft <= 0) { setMatchOver(true); return; }
     const t = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
     return () => clearTimeout(t);
-  }, [matchId, timeLeft, matchOver]);
+  }, [matchId, timeLeft, matchOver, gameStarted]);
+
+  // ── Stop Market When Match Ends ────────────────────
+  useEffect(() => {
+    if (matchOver) {
+      setInBattle(false); // Stop market simulation
+    }
+  }, [matchOver, setInBattle]);
+
+  // ── Market Host Broadcasting ─────────────────────────
+  useEffect(() => {
+    if (!matchId || !isMarketHost || !pusherClient || !gameStarted) {
+      setMarketBroadcast(null);
+      return;
+    }
+    
+    // If this player is the host, broadcast market updates
+    setMarketBroadcast((newMarket) => {
+      triggerPusherEvent(`arena-${matchId}`, 'market-tick', {
+        sender: username,
+        market: newMarket
+      }).catch(() => {});
+    });
+    
+    return () => setMarketBroadcast(null);
+  }, [matchId, isMarketHost, pusherClient, gameStarted, username, triggerPusherEvent, setMarketBroadcast]);
 
   // ── Multiplayer Logic ──────────────────────────────
   useEffect(() => {
@@ -156,16 +220,30 @@ export default function Arena() {
     const channelName = `arena-${matchId}`;
     const channel = pusherClient.subscribe(channelName);
 
+    channel.bind('player-ready', (data) => {
+      if (data.username !== username) {
+        setPlayersReady(prev => new Set([...prev, data.username]));
+        setOpponent(prev => prev ? { ...prev, username: data.username } : { username: data.username, netWorth: 0 });
+      }
+    });
+
     channel.bind('networth-update', (data) => {
       if (data.username !== username) {
         setOpponent(data);
       }
     });
 
-    // Only override market when opponent explicitly fast-forwarded
+    // Sync market from the host player
     channel.bind('market-sync', (data) => {
       if (data.sender !== username && data.newMarket) {
         overrideMarket(data.newMarket);
+      }
+    });
+
+    channel.bind('market-tick', (data) => {
+      // Non-host players receive and apply market updates from the host
+      if (!isMarketHost && data.sender !== username && data.market) {
+        overrideMarket(data.market);
       }
     });
 
@@ -175,18 +253,14 @@ export default function Arena() {
       }
     });
 
-    // Announce arrival
-    triggerPusherEvent(channelName, 'networth-update', { username, netWorth: totalValue }).catch(() => {});
-
     return () => { pusherClient.unsubscribe(channelName); };
-  }, [matchId, pusherClient, username]);
+  }, [matchId, pusherClient, username, overrideMarket, isMarketHost]);
 
   // Broadcast net worth when it changes (debounced — only when holdings/cash changes)
   useEffect(() => {
-    if (!matchId || !pusherClient || !username) return;
+    if (!matchId || !pusherClient || !username || !gameStarted) return;
     triggerPusherEvent(`arena-${matchId}`, 'networth-update', { username, netWorth: totalValue }).catch(() => {});
-    // Note: does NOT broadcast market prices — each client runs its own market timer
-  }, [totalValue, matchId, username]);
+  }, [totalValue, matchId, username, gameStarted, pusherClient, triggerPusherEvent]);
 
   const handleTrade = (ticker, type, shares, price) => {
     executeTrade(ticker, type, shares, price);
@@ -254,6 +328,112 @@ export default function Arena() {
             </motion.button>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  // ── Waiting Lobby (Multiplayer) ────────────────────
+  if (matchId && !gameStarted) {
+    return (
+      <div className="page-content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', textAlign: 'center' }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          style={{
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '40px 32px',
+            maxWidth: 400,
+            width: '100%',
+            border: '2px solid var(--border-glass)',
+            boxShadow: '0 8px 32px rgba(168,85,247,0.2)',
+          }}>
+          <motion.div
+            animate={{
+              rotate: [0, 360],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+            style={{ marginBottom: 24 }}>
+            <Swords size={64} color="var(--accent-purple)" />
+          </motion.div>
+          <h2 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '1.75rem',
+            fontWeight: 900,
+            marginBottom: 12,
+            background: 'var(--gradient-purple)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}>
+            Waiting for Opponent...
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 24, lineHeight: 1.5 }}>
+            {opponent ? (
+              <>
+                <span style={{ fontWeight: 700, color: 'var(--accent-green)' }}>✓ {opponent.username}</span> has joined!<br />
+                Starting match...
+              </>
+            ) : (
+              <>
+                Challenge sent! Waiting for your friend to accept and join the arena.
+              </>
+            )}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '12px 16px',
+              background: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--accent-green)',
+            }}>
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}>✓</div>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{username} (You)</span>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '12px 16px',
+              background: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius-md)',
+              border: opponent ? '1px solid var(--accent-green)' : '1px solid var(--border-glass)',
+              opacity: opponent ? 1 : 0.5,
+            }}>
+              <motion.div
+                animate={opponent ? {} : { scale: [1, 1.2, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  background: opponent ? 'var(--accent-green)' : 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.875rem',
+                }}>
+                {opponent ? '✓' : '○'}
+              </motion.div>
+              <span style={{ fontWeight: 700, color: opponent ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                {opponent ? opponent.username : 'Waiting...'}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => window.history.back()}
+            className="btn btn-secondary btn-block"
+            style={{ marginTop: 8 }}>
+            Cancel Match
+          </button>
+        </motion.div>
       </div>
     );
   }
