@@ -117,15 +117,15 @@ function TradeModal({ stock, holding, stockCash, onClose, onTrade }) {
 
 export default function Arena() {
   const { matchId } = useParams();
-  const { username, stockCash, stockStartingAmount, holdings, executeTrade, addXP, setStartingAmount, marketStocks, skipTime, overrideMarket, pusherClient, triggerPusherEvent, setInBattle, setMarketBroadcast } = useGameState();
+  const { username, token, stockCash, stockStartingAmount, holdings, executeTrade, addXP, setStartingAmount, marketStocks, skipTime, overrideMarket, setInBattle } = useGameState();
   const [selectedStock, setSelectedStock] = useState(null);
   const [tab, setTab] = useState('market'); // market | portfolio | arena
   const [opponent, setOpponent] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(null); // Don't start until both ready
+  const [timeLeft, setTimeLeft] = useState(null);
   const [matchOver, setMatchOver] = useState(false);
-  const [playersReady, setPlayersReady] = useState(new Set()); // Track who's ready
+  const [playersReady, setPlayersReady] = useState(new Set());
   const [gameStarted, setGameStarted] = useState(false);
-  const [isMarketHost, setIsMarketHost] = useState(false); // First player becomes market host
+  const [finalValues, setFinalValues] = useState(null); // snapshot at match end
 
   // ── Gemini Portfolio Analysis ───────────────────────────────────────
   const [portfolioAnalysis, setPortfolioAnalysis] = useState('');
@@ -190,52 +190,95 @@ export default function Arena() {
   }, 0);
   const totalValue = stockCash + holdingsValue;
 
-  // ── Live match: always start both players fresh with $100K for a fair fight
-  // ── Solo mode: Enable battle mode to prevent auto-save conflicts
+  // ── Live match init ──
   const matchInitRef = useRef(false);
   useEffect(() => {
-    // Enable battle mode for both solo and multiplayer
     setInBattle(true);
-    
     if (matchId && !matchInitRef.current) {
       matchInitRef.current = true;
-      setStartingAmount(100000); // resets cash + clears holdings
+      setStartingAmount(100000);
       setMatchOver(false);
       setGameStarted(false);
-      setTimeLeft(null); // Don't start countdown yet
+      setTimeLeft(null);
     }
-    return () => {
-      // Re-enable auto-save when leaving Arena
-      setInBattle(false);
-    };
+    return () => { setInBattle(false); };
   }, [matchId, setStartingAmount, setInBattle]);
 
-  // ── Signal Player Ready ────────────────────────────
+  // ── MongoDB Polling: join + status ──
   useEffect(() => {
-    if (!matchId || !pusherClient || !username || gameStarted) return;
-    
-    // Announce that this player is ready
-    triggerPusherEvent(`arena-${matchId}`, 'player-ready', { username }).catch(() => {});
-    
-    // Mark self as ready locally
-    setPlayersReady(prev => {
-      const newSet = new Set([...prev, username]);
-      // First player to join becomes the market host
-      if (newSet.size === 1 && newSet.has(username)) {
-        setIsMarketHost(true);
-      }
-      return newSet;
-    });
-  }, [matchId, pusherClient, username, gameStarted, triggerPusherEvent]);
+    if (!matchId || !token || !username || gameStarted) return;
 
-  // ── Start Game When Both Players Ready ─────────────
+    // Announce this player has joined
+    fetch('/api/arena?action=join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ matchId }),
+    }).catch(() => {});
+
+    // Mark self as ready
+    setPlayersReady(prev => new Set([...prev, username]));
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/arena?action=status&matchId=${encodeURIComponent(matchId)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok || cancelled) return;
+        const { players, market } = await res.json(); // Assuming market is also returned
+        const playerNames = Object.keys(players || {});
+
+        // Update ready set
+        setPlayersReady(new Set(playerNames));
+
+        // Find opponent
+        const opponentName = playerNames.find(p => p !== username);
+        if (opponentName) {
+          setOpponent(prev => ({
+            username: opponentName,
+            netWorth: players[opponentName]?.netWorth ?? 0,
+          }));
+        }
+
+        // Sync market from the server (no host concept with polling)
+        if (market) {
+          overrideMarket(market);
+        }
+
+        // Start game when both players are in
+        if (playerNames.length >= 2 && !gameStarted) {
+          setGameStarted(true);
+          setTimeLeft(180);
+        }
+      } catch (_) {}
+    };
+
+    poll();
+    const interval = setInterval(poll, 2000);
+    return () => { cancelled = true; clearInterval(interval); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId, token, username, gameStarted]);
+
+  // ── Poll opponent net worth during game ──
   useEffect(() => {
-    if (!matchId || gameStarted || playersReady.size < 2) return;
-    
-    // Both players are in the arena - start the match!
-    setGameStarted(true);
-    setTimeLeft(180); // Start 3-minute countdown
-  }, [matchId, playersReady, gameStarted]);
+    if (!matchId || !token || !username || !gameStarted || matchOver) return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/arena?action=status&matchId=${encodeURIComponent(matchId)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok || cancelled) return;
+        const { players } = await res.json();
+        const opponentName = Object.keys(players || {}).find(p => p !== username);
+        if (opponentName) {
+          setOpponent({ username: opponentName, netWorth: players[opponentName]?.netWorth ?? 0 });
+        }
+      } catch (_) {}
+    };
+    const interval = setInterval(poll, 2000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [matchId, token, username, gameStarted, matchOver]);
 
   // ── Match Countdown Timer ──────────────────────────
   useEffect(() => {
@@ -245,104 +288,39 @@ export default function Arena() {
     return () => clearTimeout(t);
   }, [matchId, timeLeft, matchOver, gameStarted]);
 
-  // ── Stop Market When Match Ends ────────────────────
+  // ── Snapshot final values + stop market the moment match ends ──
   useEffect(() => {
     if (matchOver) {
-      setInBattle(false); // Stop market simulation
+      setFinalValues({
+        myNetWorth: totalValue,
+        opponentNetWorth: opponent?.netWorth ?? 0,
+        opponentName: opponent?.username,
+      });
+      setInBattle(false);
     }
-  }, [matchOver, setInBattle]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchOver]);
 
-  // ── Market Host Broadcasting ─────────────────────────
+
+  // ── Broadcast net worth to MongoDB on change ──
   useEffect(() => {
-    if (!matchId || !isMarketHost || !pusherClient || !gameStarted) {
-      setMarketBroadcast(null);
-      return;
-    }
-    
-    // If this player is the host, broadcast market updates
-    setMarketBroadcast((newMarket) => {
-      triggerPusherEvent(`arena-${matchId}`, 'market-tick', {
-        sender: username,
-        market: newMarket
-      }).catch(() => {});
-    });
-    
-    return () => setMarketBroadcast(null);
-  }, [matchId, isMarketHost, pusherClient, gameStarted, username, triggerPusherEvent, setMarketBroadcast]);
-
-  // ── Multiplayer Logic ──────────────────────────────
-  useEffect(() => {
-    if (!matchId || !pusherClient || !username) return;
-
-    const channelName = `arena-${matchId}`;
-    const channel = pusherClient.subscribe(channelName);
-
-    channel.bind('player-ready', (data) => {
-      if (data.username !== username) {
-        setPlayersReady(prev => new Set([...prev, data.username]));
-        setOpponent(prev => prev ? { ...prev, username: data.username } : { username: data.username, netWorth: 0 });
-      }
-    });
-
-    channel.bind('networth-update', (data) => {
-      if (data.username !== username) {
-        setOpponent(data);
-      }
-    });
-
-    // Sync market from the host player
-    channel.bind('market-sync', (data) => {
-      if (data.sender !== username && data.newMarket) {
-        overrideMarket(data.newMarket);
-      }
-    });
-
-    channel.bind('market-tick', (data) => {
-      // Non-host players receive and apply market updates from the host
-      if (!isMarketHost && data.sender !== username && data.market) {
-        overrideMarket(data.market);
-      }
-    });
-
-    channel.bind('trade-event', (data) => {
-      if (data.username !== username) {
-        setOpponent(prev => prev ? { ...prev, netWorth: data.netWorth } : { username: data.username, netWorth: data.netWorth });
-      }
-    });
-
-    return () => { pusherClient.unsubscribe(channelName); };
-  }, [matchId, pusherClient, username, overrideMarket, isMarketHost]);
-
-  // Broadcast net worth when it changes (debounced — only when holdings/cash changes)
-  useEffect(() => {
-    if (!matchId || !pusherClient || !username || !gameStarted) return;
-    triggerPusherEvent(`arena-${matchId}`, 'networth-update', { username, netWorth: totalValue }).catch(() => {});
-  }, [totalValue, matchId, username, gameStarted, pusherClient, triggerPusherEvent]);
+    if (!matchId || !token || !username || !gameStarted || matchOver) return;
+    fetch('/api/arena?action=networth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ matchId, netWorth: totalValue }),
+    }).catch(() => {});
+  }, [totalValue, matchId, token, username, gameStarted, matchOver]);
 
   const handleTrade = (ticker, type, shares, price) => {
     executeTrade(ticker, type, shares, price);
     addXP(15);
-    // Broadcast the trade so the opponent's net worth updates immediately.
-    // totalValue is cash + holdings at current render — apply this trade's cash delta
-    // to get the correct post-trade number without relying on stale state.
-    if (matchId && pusherClient) {
-      const tradeDelta = type === 'BUY' ? -(price * shares) : (price * shares);
-      const immediateNetWorth = totalValue + tradeDelta;
-      triggerPusherEvent(`arena-${matchId}`, 'trade-event', { username, netWorth: immediateNetWorth, ticker, type, shares }).catch(() => { });
-    }
   };
 
   const handleFastForward = () => {
     skipTime();
-    // After skipping time, broadcast the new market so both players jump the same week
-    // We read marketStocks on the NEXT tick to get the post-skip value
-    if (matchId && pusherClient) {
-      setTimeout(() => {
-        // Access the latest market via a fresh read — we can't use stale closure here
-        // instead the networth-update broadcast on totalValue change will handle the score update
-      }, 0);
-    }
   };
+
 
   // ── Starting Amount Picker ─────────────────────────
   if (!stockStartingAmount) {

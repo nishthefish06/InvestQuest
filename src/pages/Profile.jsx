@@ -53,7 +53,7 @@ function DecorCoins({ coins }) {
 }
 
 export default function Profile() {
-  const { username, xp, level, xpToNext, streak, lessonsCompleted, achievements, holdings, stockCash, worldProgress, friends, friendRequests, searchUser, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend, logout, pusherClient, triggerPusherEvent } = useGameState();
+  const { username, xp, level, xpToNext, streak, lessonsCompleted, achievements, holdings, stockCash, worldProgress, friends, friendRequests, searchUser, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend, logout, token } = useGameState();
   const navigate = useNavigate();
   const progress = (xp / xpToNext) * 100;
   
@@ -72,44 +72,71 @@ export default function Profile() {
   const cardSage = '#385c43'; // Darker card background
   const overlayBg = 'rgba(65, 106, 77, 0.9)'; // Slightly darker/blurrier for modals
 
+  // ── Poll MongoDB for incoming challenges ──
   useEffect(() => {
-    if (pusherClient && username) {
-      // Public channel — no auth required so events are reliably received
-      const safeChannel = `notify-${username.replace(/[^a-zA-Z0-9_-]/g, '')}`;
-      const channel = pusherClient.subscribe(safeChannel);
-      
-      channel.bind('challenge', (data) => {
-        setIncomingChallenge(data);
-      });
+    if (!token || !username) return;
+    let cancelled = false;
 
-      return () => {
-        pusherClient.unsubscribe(safeChannel);
-      };
-    }
-  }, [pusherClient, username]);
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/challenge?action=incoming', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const { challenge } = await res.json();
+        if (!cancelled && challenge) {
+          setIncomingChallenge(challenge);
+        }
+      } catch (_) {}
+    };
+
+    poll();
+    const interval = setInterval(poll, 3000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [token, username]);
 
   const handleSendChallenge = async (friendUsername) => {
     const matchId = `match-${username.replace(/[^a-zA-Z0-9]/g, '')}-${Date.now()}`;
-    const targetChannel = `notify-${friendUsername.replace(/[^a-zA-Z0-9_-]/g, '')}`;
     try {
-      await triggerPusherEvent(targetChannel, 'challenge', { challenger: username, matchId });
+      const res = await fetch('/api/challenge?action=send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ targetUsername: friendUsername, matchId }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Server error (${res.status})`);
+      }
       navigate(`/arena/${matchId}`);
     } catch (e) {
       console.error('Failed to send challenge', e);
-      // Show user-friendly error message
-      if (e.message.includes('Session expired') || e.message.includes('log in')) {
-        alert('Your session has expired. Please log in again to challenge friends.');
-        // Redirect to login could happen here if you have a login page
-      } else {
-        alert(`Challenge failed: ${e.message}\n\nPlease try again or refresh the page.`);
-      }
+      alert(`Challenge failed: ${e.message}\n\nPlease try again or refresh the page.`);
     }
   };
 
   const handleAcceptChallenge = () => {
     if (incomingChallenge) {
+      // Dismiss from DB so it stops polling
+      if (incomingChallenge._id) {
+        fetch('/api/challenge?action=dismiss', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ challengeId: incomingChallenge._id }),
+        }).catch(() => {});
+      }
       navigate(`/arena/${incomingChallenge.matchId}`);
     }
+  };
+
+  const handleDeclineChallenge = () => {
+    if (incomingChallenge?._id) {
+      fetch('/api/challenge?action=dismiss', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ challengeId: incomingChallenge._id }),
+      }).catch(() => {});
+    }
+    setIncomingChallenge(null);
   };
 
   const handleSearch = async (e) => {
@@ -362,12 +389,12 @@ export default function Profile() {
               
               <h3 style={{ fontWeight: 900, fontSize: '1.75rem', fontFamily: 'var(--font-display)', marginBottom: 12, color: headerTeal }}>Challenge Request!</h3>
               <p style={{ color: headerTeal, fontSize: '1rem', marginBottom: 28, lineHeight: 1.4, fontWeight: 600 }}>
-                <strong style={{ color: headerTeal, fontWeight: 900 }}>{incomingChallenge.challenger}</strong> has challenged you to a 3-minute stock trading battle!
+                <strong style={{ color: headerTeal, fontWeight: 900 }}>{incomingChallenge.from || incomingChallenge.challenger}</strong> has challenged you to a 3-minute stock trading battle!
               </p>
               
               <div style={{ display: 'flex', gap: 12 }}>
                 <button 
-                  onClick={() => setIncomingChallenge(null)} 
+                  onClick={handleDeclineChallenge} 
                   style={{ flex: 1, padding: '14px', borderRadius: 16, background: 'rgba(255,255,255,0.4)', color: headerTeal, border: 'none', fontWeight: 800, fontSize: '1rem' }}>
                   Decline
                 </button>
