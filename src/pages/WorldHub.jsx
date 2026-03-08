@@ -196,36 +196,39 @@ export default function WorldHub() {
           ))}
         </div>
 
-        {/* Quest Path (Coins) */}
+        {/* Quest Path */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '16px 0' }}>
           {filteredQuests.map((quest, i) => {
             const isOdd = i % 2 === 0;
             const canPlay = quest.status !== 'locked';
 
+            const coinHalf = (
+              <div style={{ width: '30%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src="/flat-coin.png" alt="Quest Node" style={{ width: 100, height: 100, objectFit: 'contain', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))' }} />
+              </div>
+            );
+
+            const textHalf = (
+              <div style={{ width: '70%' }}>
+                <h4 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.3)', marginBottom: 2, textAlign: 'center' }}>{quest.title}</h4>
+                <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#111', textAlign: 'center' }}>{quest.desc}</p>
+                <p style={{ fontSize: '0.75rem', color: amber, fontWeight: 900, textShadow: '0 1px 1px rgba(0,0,0,0.2)', textAlign: 'center' }}>+{quest.xp} XP</p>
+              </div>
+            );
+
             return (
-              <motion.div key={quest.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+              <motion.div key={quest.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: quest.status === 'locked' ? 0.5 : 1, y: 0 }} transition={{ delay: i * 0.1 }}
+                onClick={() => canPlay && (quest.type === 'sim' ? navigate(getGameRoute()) : navigate(`/quest/${worldId}/${quest.id}`))}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 16,
-                  flexDirection: isOdd ? 'row' : 'row-reverse',
-                  paddingLeft: isOdd ? 24 : 0, paddingRight: isOdd ? 0 : 24,
+                  display: 'flex', alignItems: 'center',
+                  background: 'rgba(255,255,255,0.12)', border: '2px solid rgba(255,255,255,0.25)',
+                  borderRadius: 40, padding: '0px 16px', backdropFilter: 'blur(8px)',
+                  cursor: canPlay ? 'pointer' : 'not-allowed',
+                  opacity: quest.status === 'locked' ? 0.5 : 1,
+                  filter: quest.status === 'completed' ? 'sepia(1) hue-rotate(80deg) saturate(2)' : 'none',
+                  transition: 'all 0.25s',
                 }}>
-
-                <div onClick={() => canPlay && (quest.type === 'sim' ? navigate(getGameRoute()) : navigate(`/quest/${worldId}/${quest.id}`))}
-                  style={{
-                    width: 100, height: 100, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0, cursor: canPlay ? 'pointer' : 'not-allowed',
-                    opacity: quest.status === 'locked' ? 0.5 : 1,
-                    filter: quest.status === 'completed' ? 'sepia(1) hue-rotate(80deg) saturate(2)' : 'none', // Tint green if completed
-                    transition: 'all 0.25s'
-                  }}>
-                  <img src="/flat-coin.png" alt="Quest Node" style={{ width: '200%', height: '200%', objectFit: 'contain', filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.15))' }} />
-                </div>
-
-                <div style={{ flex: 1, textAlign: isOdd ? 'left' : 'right' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.3)', marginBottom: 2 }}>{quest.title}</h4>
-                  <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#111', marginBottom: 4 }}>{quest.desc}</p>
-                  <p style={{ fontSize: '0.75rem', color: amber, fontWeight: 900, textShadow: '0 1px 1px rgba(0,0,0,0.2)' }}>+{quest.xp} XP</p>
-                </div>
+                {isOdd ? <>{coinHalf}{textHalf}</> : <>{textHalf}{coinHalf}</>}
               </motion.div>
             );
           })}
@@ -234,4 +237,3 @@ export default function WorldHub() {
     </div>
   );
 }
-

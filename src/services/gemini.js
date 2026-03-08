@@ -1,11 +1,150 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Initialize the Gemini API client
-// We use import.meta.env for Vite environment variables
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-// Check if the API key is available, but don't crash the app if it's not
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+
+/**
+ * Fetches a structured interactive lesson as a JSON array of blocks.
+ * Block types: 'bubble' | 'reveal' | 'poll'
+ * @returns {Promise<Array>} array of blocks
+ */
+export async function fetchLesson(questTitle, worldId) {
+  const worldContext = {
+    budget: 'personal finance, budgeting, saving, debt management, and the 50/30/20 rule',
+    stocks: 'stock market investing, trading, equities, market analysis, and portfolio management',
+    crypto: 'cryptocurrency, blockchain technology, decentralized finance, and crypto security',
+  }[worldId] || 'personal finance';
+
+  if (!genAI) {
+    return getFallbackLesson(questTitle, worldContext);
+  }
+
+  const prompt = `You are a fun, Gen-Z-friendly financial tutor inside InvestQuest, a gamified finance learning app.
+Create an interactive lesson about "${questTitle}" (context: ${worldContext}).
+
+Return a JSON array of blocks. Use exactly this structure — no extra keys, no markdown fences:
+
+[
+  { "type": "bubble", "text": "...", "emoji": "💡" },
+  { "type": "reveal", "hint": "Tap to reveal a key fact", "fact": "...", "emoji": "🔑" },
+  { "type": "bubble", "text": "...", "emoji": "📊" },
+  { "type": "poll", "question": "Quick check — what do YOU think?", "options": ["Option A", "Option B"], "reactions": ["Gemini reaction to A (1 sentence, fun)", "Gemini reaction to B (1 sentence, fun)"] },
+  { "type": "bubble", "text": "...", "emoji": "🚀" }
+]
+
+Rules:
+- 5 to 8 blocks total
+- Start with a bubble that hooks them with a surprising fact or relatable scenario
+- Include 1 to 3 polls (gut-checks, NOT graded — just get them thinking)
+- Include 1 to 2 reveal cards for key terms or surprising stats
+- Each bubble is 1-3 short punchy sentences max — like a friend texting you
+- Poll options should be 2-3 words each, casual and fun
+- Poll reactions must directly acknowledge their choice and connect to the lesson
+- End with a bubble that hypes them up for the quiz
+- Emojis should feel natural, not forced
+- Write like a smart encouraging friend, NEVER like a textbook
+- Return ONLY the JSON array, nothing else`;
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await withRetry(() => model.generateContent(prompt));
+    const raw = result.response.text().replace(/```json|```/g, '').trim();
+    const blocks = JSON.parse(raw);
+    if (!Array.isArray(blocks) || blocks.length === 0) throw new Error('Invalid lesson format');
+    return blocks;
+  } catch (error) {
+    console.error('fetchLesson error:', error);
+    return getFallbackLesson(questTitle, worldContext);
+  }
+}
+
+function getFallbackLesson(questTitle, worldContext) {
+  return [
+    { type: 'bubble', text: `Let's talk about ${questTitle}! 🎓 This is one of the most important concepts in ${worldContext}.`, emoji: '👋' },
+    { type: 'reveal', hint: 'Tap to reveal why this matters', fact: `Understanding ${questTitle} can save — or make — you thousands of dollars over your lifetime.`, emoji: '💰' },
+    { type: 'bubble', text: "The key idea is simple once you see it. Most people overcomplicate this stuff — you won't. 💪", emoji: '💡' },
+    { type: 'poll', question: 'Have you ever thought about this before?', options: ['Yep, totally', 'New to me!'], reactions: ["Love it — prior knowledge makes this click even faster! 🧠", "Perfect time to learn — no bad habits to unlearn! 🌱"] },
+    { type: 'bubble', text: "Now that you've got the concept, let's lock it in with the quiz. You've got this! 🚀", emoji: '🏆' },
+  ];
+}
+
+
+/**
+ * Generates quiz questions based on the lesson content for a specific quest.
+ * @param {string} questTitle - the quest/lesson name
+ * @param {string} lessonText - the AI lesson content that was just taught
+ * @param {string} worldId - 'budget' | 'stocks' | 'crypto'
+ * @returns {Promise<Array<{question, options, correct, xp}>>}
+ */
+export async function generateQuizQuestions(questTitle, lessonText, worldId) {
+  if (!genAI) {
+    return getFallbackQuestions(worldId);
+  }
+
+  const prompt = `You are a quiz generator for InvestQuest, a gamified finance learning app.
+Based on this lesson about "${questTitle}":
+
+---
+${lessonText}
+---
+
+Generate exactly 4 multiple-choice quiz questions that test understanding of this specific content.
+
+Rules:
+- Questions must be directly based on the lesson above — not generic finance trivia
+- Each question has exactly 4 answer options (A, B, C, D)
+- Exactly 1 correct answer per question
+- Wrong answers should be plausible, not obviously silly
+- Questions should range from recall (1-2) to application/understanding (2-3)
+- xp: award 15 for recall questions, 20 for application questions
+
+Return ONLY valid JSON, no markdown fences, no explanation:
+[
+  {
+    "question": "...",
+    "options": ["...", "...", "...", "..."],
+    "correct": 0,
+    "xp": 15
+  }
+]`;
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await withRetry(() => model.generateContent(prompt));
+    const raw = result.response.text().replace(/```json|```/g, '').trim();
+    const questions = JSON.parse(raw);
+    if (!Array.isArray(questions) || questions.length === 0) throw new Error('Invalid questions format');
+    return questions;
+  } catch (error) {
+    console.error('Error generating quiz questions:', error);
+    return getFallbackQuestions(worldId);
+  }
+}
+
+function getFallbackQuestions(worldId) {
+  const fallbacks = {
+    budget: [
+      { question: 'What does the 50/30/20 rule recommend for savings?', options: ['50%', '30%', '20%', '10%'], correct: 2, xp: 15 },
+      { question: 'An emergency fund should ideally cover how many months of expenses?', options: ['1 month', '3-6 months', '12 months', '2 weeks'], correct: 1, xp: 15 },
+      { question: 'Which of these is a "need" in a budget?', options: ['Streaming services', 'Rent', 'Dining out', 'New shoes'], correct: 1, xp: 15 },
+      { question: 'What is the debt snowball method?', options: ['Pay highest interest first', 'Pay smallest balance first', 'Pay minimum on all debts', 'Consolidate all loans'], correct: 1, xp: 20 },
+    ],
+    stocks: [
+      { question: 'What does owning a stock mean?', options: ['You lent money to a company', 'You own a small piece of a company', 'You have a fixed interest return', 'You manage the company'], correct: 1, xp: 15 },
+      { question: 'A bear market is characterized by:', options: ['Rising prices', 'Stable prices', 'Falling prices', 'High volume'], correct: 2, xp: 15 },
+      { question: 'What does P/E ratio stand for?', options: ['Profit / Equity', 'Price / Earnings', 'Portfolio / Expenses', 'Potential Earnings'], correct: 1, xp: 20 },
+      { question: 'Diversification is a strategy to:', options: ['Maximize returns', 'Reduce risk', 'Increase volatility', 'Pick winning stocks'], correct: 1, xp: 15 },
+    ],
+    crypto: [
+      { question: 'What is the core technology behind Bitcoin?', options: ['AI', 'Blockchain', 'Cloud computing', 'The internet'], correct: 1, xp: 15 },
+      { question: 'What is a crypto "rug pull"?', options: ['A market crash', 'Developers abandoning a project with funds', 'A trading fee', 'A mining reward'], correct: 1, xp: 20 },
+      { question: '"Not your keys, not your coins" means:', options: ['Physical coins are real', 'You need private keys to truly own crypto', 'Exchanges are safe', 'Mining is required'], correct: 1, xp: 15 },
+      { question: 'What is DeFi short for?', options: ['Defined Finance', 'Decentralized Finance', 'Deficit Financing', 'Default Insurance'], correct: 1, xp: 15 },
+    ],
+  };
+  return fallbacks[worldId] || fallbacks.stocks;
+}
 
 /**
  * Wraps an async fn with exponential backoff for 429 rate-limit errors.
@@ -122,15 +261,15 @@ Instructions:
 
   } catch (error) {
     const msg = error.message || '';
-    const isRateLimit = 
+    const isRateLimit =
       error.status === 429 ||
-      msg.includes('429') || 
+      msg.includes('429') ||
       msg.includes('rate-limit') ||
       msg.includes('rate limit') ||
-      msg.includes('Resource has been exhausted') || 
+      msg.includes('Resource has been exhausted') ||
       msg.includes('Please retry') ||
       msg.includes('quota');
-    
+
     if (isRateLimit) {
       console.error('GEMINI ERROR: Rate limited.', msg.slice(0, 100));
       return "Wow! You've got me thinking too hard. 🧠 Google's rate limit is holding on — click Try Again in 30 seconds!";

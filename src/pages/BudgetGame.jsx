@@ -204,9 +204,12 @@ export default function BudgetGame() {
 
   // Active Map of Categories to render grouped
   const renderGroup = (title, prefix, color, targetAmt) => {
-    const activeAllocations = Object.entries(allocations).filter(([k]) => k.startsWith(prefix));
-    const groupTotal = activeAllocations.reduce((sum, [, val]) => sum + val, 0);
     const availableCats = ALL_BUDGET_CATEGORIES.filter(c => c.type === prefix);
+    const mandatoryTotal = activeScenario.mandatory.reduce((sum, m) => {
+      const key = `${prefix}_${m.id}`;
+      return key in allocations ? sum + m.amount : sum;
+    }, 0);
+    const choicesTotal = availableCats.reduce((sum, cat) => sum + (allocations[cat.id] || 0), 0);
 
     return (
       <div style={{ marginBottom: 24 }}>
@@ -217,8 +220,7 @@ export default function BudgetGame() {
 
         {/* Render mandatory bills for this group first */}
         {activeScenario.mandatory.map(m => {
-          if ((prefix === 'need' && m.id !== 'repair' && !m.isSurprise) || (prefix === 'want' && m.isSurprise)) return null; // Very basic bucketing for demo
-          if (!allocations[`${prefix}_${m.id}`] && allocations[`${prefix}_${m.id}`] !== 0) return null;
+          if (!((`${prefix}_${m.id}`) in allocations)) return null;
 
           return (
             <div key={m.id} className="budget-category" style={{ background: m.isSurprise ? 'rgba(239,68,68,0.1)' : 'var(--bg-card)' }}>
@@ -253,8 +255,19 @@ export default function BudgetGame() {
           </div>
         ))}
 
-        <div style={{ textAlign: 'right', fontSize: '0.8125rem', fontWeight: 600, color: groupTotal > targetAmt ? 'var(--accent-red)' : 'var(--text-secondary)', marginTop: 8 }}>
-          Group Total: ${groupTotal} / ${targetAmt}
+        <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginTop: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Fixed costs</span>
+            <span>${mandatoryTotal}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Your choices</span>
+            <span>${choicesTotal}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: (mandatoryTotal + choicesTotal) > targetAmt ? 'var(--accent-red)' : 'var(--text-primary)', marginTop: 4, borderTop: '1px solid var(--border-glass)', paddingTop: 4 }}>
+            <span style={{ fontWeight: 800 }}>Total</span>
+            <span style={{ fontWeight: 800 }}>${mandatoryTotal + choicesTotal} / ${targetAmt}</span>
+          </div>
         </div>
       </div>
     );
