@@ -25,6 +25,7 @@ export default async function handler(req, res) {
 
     const auth = req.headers.authorization;
     if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Not authenticated' });
+    
     const decoded = jwt.verify(auth.split(' ')[1], JWT_SECRET);
 
     const { channel, event, data } = req.body;
@@ -45,6 +46,7 @@ export default async function handler(req, res) {
     res.status(200).json({ ok: true });
   } catch (err) {
     if (err.name === 'JsonWebTokenError') return res.status(401).json({ error: 'Invalid token' });
+    if (err.name === 'TokenExpiredError') return res.status(401).json({ error: 'Token expired' });
     console.error('Pusher trigger error:', err?.message || err);
     res.status(500).json({ error: err?.message || 'Server error', stack: err?.stack?.slice(0,300) });
   }

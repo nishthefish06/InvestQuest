@@ -96,7 +96,13 @@ export default function Profile() {
       navigate(`/arena/${matchId}`);
     } catch (e) {
       console.error('Failed to send challenge', e);
-      alert(`Challenge failed: ${e.message}`);
+      // Show user-friendly error message
+      if (e.message.includes('Session expired') || e.message.includes('log in')) {
+        alert('Your session has expired. Please log in again to challenge friends.');
+        // Redirect to login could happen here if you have a login page
+      } else {
+        alert(`Challenge failed: ${e.message}\n\nPlease try again or refresh the page.`);
+      }
     }
   };
 
