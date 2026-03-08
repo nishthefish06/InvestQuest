@@ -93,7 +93,11 @@ Instructions:
     return response.text();
 
   } catch (error) {
-    console.error('GEMINI ERROR:', error.message, error.status, error);  // change this line
+    if (error.message?.includes('API_KEY_INVALID')) {
+      console.error('GEMINI ERROR: Invalid API Key. Please check your .env file and ensure the key is correct and not revoked.');
+      return "Whoops! It looks like my API key is invalid or has been revoked. 🔐 Please update the VITE_GEMINI_API_KEY in your .env file!";
+    }
+    console.error('GEMINI ERROR:', error.message, error.status, error);
     return "Looks like my AI brain is taking a quick nap! 😴 Try again later!";
   }
 }
