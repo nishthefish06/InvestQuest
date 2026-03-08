@@ -2,8 +2,55 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useGameState } from '../hooks/useGameState';
 import { WORLDS, QUESTS, MODULES } from '../data/skills';
-import { ArrowLeft, Play, Lock, Check, Users as UsersIcon, Gamepad2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
+
+const BOTTOM_COINS = [
+  { id: 1, bottom: '-5%', left: '-5%', size: 80, delay: 0.2, rotate: -15 },
+  { id: 2, bottom: '2%', left: '20%', size: 60, delay: 0.8, rotate: 10 },
+  { id: 3, bottom: '-2%', left: '45%', size: 90, delay: 0, rotate: -25 },
+  { id: 4, bottom: '5%', left: '70%', size: 55, delay: 1.5, rotate: 15 },
+  { id: 5, bottom: '-10%', left: '90%', size: 100, delay: 0.5, rotate: -10 },
+];
+
+function DecorCoins({ coins }) {
+  return (
+    <>
+      {coins.map((coin) => (
+        <motion.img
+          key={coin.id}
+          src="/coin.png"
+          alt=""
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ 
+            opacity: 1, 
+            scale: 1,
+            y: [0, -10, 0],
+            rotate: [coin.rotate, coin.rotate + 5, coin.rotate]
+          }}
+          transition={{ 
+            duration: 4, 
+            repeat: Infinity, 
+            ease: "easeInOut",
+            delay: coin.delay 
+          }}
+          style={{
+            position: 'absolute',
+            top: coin.top,
+            left: coin.left,
+            bottom: coin.bottom,
+            width: coin.size,
+            height: coin.size,
+            objectFit: 'contain',
+            pointerEvents: 'none',
+            zIndex: 0,
+            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+          }}
+        />
+      ))}
+    </>
+  );
+}
 
 export default function WorldHub() {
   const { worldId } = useParams();
@@ -25,126 +72,166 @@ export default function WorldHub() {
     return '/';
   };
 
-  return (
-    <div className="page-content">
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-        <button onClick={() => navigate('/')} style={{ padding: 4 }}>
-          <ArrowLeft size={22} color="var(--text-secondary)" />
-        </button>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: world.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
-          {world.icon}
-        </div>
-        <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 800 }}>{world.name}</h1>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{world.desc}</p>
-        </div>
-    </div>
+  const getGameName = () => {
+    if (worldId === 'budget') return 'Budget Boss';
+    if (worldId === 'stocks') return 'Market Match';
+    if (worldId === 'crypto') return 'Crypto Chaos';
+    return 'Game';
+  };
+  
+  const bgLight = '#87a992'; // Matches the sage green background in design
+  const bgDark = '#56755f';  
+  const innerCard = 'rgba(255,255,255,0.2)';
+  const trackColor = '#4e6d55'; // Darker inset background
+  const pillBtnColors = 'linear-gradient(180deg, #6c9c76 0%, #4b7d56 100%)';
+  const amber = '#f5b041';
 
-      {/* World Map Image */}
-      {world.mapImage && (
-        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
+  return (
+    <div style={{
+      minHeight: '100dvh',
+      background: `linear-gradient(180deg, ${bgLight} 0%, ${bgDark} 100%)`,
+      position: 'relative',
+      overflowX: 'hidden',
+      color: '#111',
+      paddingBottom: 80
+    }}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+        <DecorCoins coins={BOTTOM_COINS} />
+      </div>
+
+      <div className="page-content" style={{ position: 'relative', zIndex: 1, padding: '24px 20px' }}>
+        
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20, marginTop: 10 }}>
+          <button onClick={() => navigate('/')} style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
+            <ArrowLeft size={28} color="#111" />
+          </button>
+          
+          <div style={{ 
+            width: 72, height: 72, borderRadius: 16, overflow: 'hidden', flexShrink: 0,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', background: world.gradient
+          }}>
+            {world.mapImage ? (
+              <img src={world.mapImage} alt={world.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>{world.icon}</div>
+            )}
+          </div>
+
+          <div>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 4 }}>
+              {world.name}
+            </h1>
+            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#333', lineHeight: 1.3 }}>
+              {world.desc}
+            </p>
+          </div>
+        </div>
+
+        {/* Completion Bar */}
+        <div style={{ 
+          background: innerCard, 
+          borderRadius: 9999, 
+          padding: '12px 16px',
+          marginBottom: 20,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, padding: '0 4px' }}>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 800 }}>Completion</span>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 800 }}>{worldProgress[worldId]}%</span>
+          </div>
+          <div style={{ 
+            height: 12, 
+            background: trackColor, 
+            borderRadius: 9999,
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)'
+          }}>
+            <motion.div 
+              style={{ 
+                height: '100%', 
+                width: `${worldProgress[worldId]}%`,
+                background: '#5cb874', // Lighter interior green
+                borderRadius: 9999,
+                boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.4), 0 0 8px rgba(92,184,116,0.6)'
+              }} 
+            />
+          </div>
+        </div>
+
+        {/* Play Game CTA */}
+        <motion.button whileTap={{ scale: 0.96 }}
+          onClick={() => navigate(getGameRoute())}
           style={{ 
             width: '100%', 
-            height: 160, 
-            borderRadius: 'var(--radius-xl)', 
-            overflow: 'hidden', 
+            padding: '18px', 
+            borderRadius: 9999, 
+            background: pillBtnColors,
+            color: 'white',
+            fontWeight: 800,
+            fontSize: '1.25rem',
+            fontFamily: 'var(--font-display)',
+            border: 'none',
+            cursor: 'pointer',
             marginBottom: 20,
-            border: `1px solid ${world.color}33`,
-            boxShadow: `0 8px 24px -8px ${world.color}40`,
-            position: 'relative'
+            boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.2), 0 8px 16px rgba(0,0,0,0.15)',
+            textShadow: '0 1px 2px rgba(0,0,0,0.2)'
           }}>
-          <img 
-            src={world.mapImage} 
-            alt={world.name} 
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-          />
-          <div style={{
-            position: 'absolute',
-            bottom: 0, left: 0, right: 0,
-            height: '40%',
-            background: `linear-gradient(to top, var(--bg-primary), transparent)`
-          }} />
-        </motion.div>
-      )}
+          Play {getGameName()}
+        </motion.button>
 
-      {/* Progress */}
-      <div className="card" style={{ padding: 14, marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>World Progress</span>
-          <span style={{ fontSize: '0.8125rem', color: world.color, fontWeight: 700 }}>{worldProgress[worldId]}%</span>
-        </div>
-        <div className="progress-bar" style={{ height: 6 }}>
-          <div className={`progress-fill ${worldId}`} style={{ width: `${worldProgress[worldId]}%` }} />
-        </div>
-      </div>
-
-      {/* Play Game CTA */}
-      <motion.button whileTap={{ scale: 0.96 }}
-        className={`btn btn-${worldId} btn-block btn-lg`}
-        onClick={() => navigate(getGameRoute())}
-        style={{ marginBottom: 20 }}>
-        <Gamepad2 size={20} /> Play {world.name.split(' ')[0]} Game
-      </motion.button>
-
-      {/* Module Tabs */}
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 12, marginBottom: 8 }}>
-        {modules.map((mod) => (
-          <button key={mod.id} onClick={() => setActiveModule(mod.id)}
-            style={{
-              padding: '8px 16px', borderRadius: 9999, fontSize: '0.8125rem', fontWeight: 600,
-              whiteSpace: 'nowrap', border: '1px solid',
-              background: activeModule === mod.id ? `${world.color}22` : 'var(--bg-card)',
-              borderColor: activeModule === mod.id ? world.color : 'var(--border-subtle)',
-              color: activeModule === mod.id ? world.color : 'var(--text-secondary)',
-              transition: 'all 0.25s',
-            }}>
-            {mod.icon} {mod.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Quest Path */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', padding: '16px 0' }}>
-        <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: 3, background: 'rgba(255,255,255,0.06)', transform: 'translateX(-50%)' }} />
-        {filteredQuests.map((quest, i) => {
-          const isOdd = i % 2 === 0;
-          const icon = quest.status === 'completed' ? <Check size={18} /> : quest.status === 'locked' ? <Lock size={18} /> : quest.type === 'sim' ? <Gamepad2 size={18} /> : quest.type === 'group' ? <UsersIcon size={18} /> : <Play size={16} />;
-          const canPlay = quest.status !== 'locked';
-          const nodeColor = quest.status === 'completed' ? 'var(--accent-green)' : quest.status === 'locked' ? 'var(--text-muted)' : world.color;
-          const nodeBg = quest.status === 'completed' ? 'rgba(16,185,129,0.15)' : quest.status === 'locked' ? 'var(--bg-card)' : `${world.color}22`;
-
-          return (
-            <motion.div key={quest.id} initial={{ opacity: 0, x: isOdd ? -30 : 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
+        {/* Module Tabs (Pills) */}
+        <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 12, marginBottom: 20, justifyContent: 'center' }}>
+          {modules.map((mod) => (
+            <button key={mod.id} onClick={() => setActiveModule(mod.id)}
               style={{
-                position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 14,
-                width: '100%', maxWidth: 320, padding: '8px 0',
-                flexDirection: isOdd ? 'row' : 'row-reverse',
-                paddingLeft: isOdd ? 16 : 0, paddingRight: isOdd ? 0 : 16,
+                padding: '10px 20px', borderRadius: 9999, fontSize: '0.8125rem', fontWeight: 800,
+                whiteSpace: 'nowrap', border: 'none', cursor: 'pointer',
+                background: activeModule === mod.id ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)',
+                color: '#111',
+                boxShadow: activeModule === mod.id ? '0 4px 8px rgba(0,0,0,0.05)' : 'none',
+                transition: 'all 0.2s',
               }}>
-              <div onClick={() => canPlay && (quest.type === 'sim' ? navigate(getGameRoute()) : navigate(`/quest/${worldId}/${quest.id}`))}
+              {mod.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Quest Path (Coins) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '16px 0' }}>
+          {filteredQuests.map((quest, i) => {
+            const isOdd = i % 2 === 0;
+            const canPlay = quest.status !== 'locked';
+
+            return (
+              <motion.div key={quest.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
                 style={{
-                  width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, border: '3px solid', cursor: canPlay ? 'pointer' : 'not-allowed', transition: 'all 0.25s',
-                  background: nodeBg, borderColor: nodeColor, color: nodeColor,
-                  opacity: quest.status === 'locked' ? 0.4 : 1,
-                  boxShadow: canPlay && quest.status !== 'completed' ? `0 0 15px ${nodeBg}` : 'none',
+                  display: 'flex', alignItems: 'center', gap: 16,
+                  flexDirection: isOdd ? 'row' : 'row-reverse',
+                  paddingLeft: isOdd ? 24 : 0, paddingRight: isOdd ? 0 : 24,
                 }}>
-                {icon}
-              </div>
-              <div style={{ flex: 1, textAlign: isOdd ? 'left' : 'right' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: isOdd ? 'flex-start' : 'flex-end', flexWrap: 'wrap', marginBottom: 2 }}>
-                  <h4 style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{quest.title}</h4>
-                  {quest.type === 'group' && <span style={{ fontSize: '0.5625rem', padding: '2px 6px', borderRadius: 9999, background: 'rgba(6,182,212,0.15)', color: 'var(--accent-cyan)', fontWeight: 600 }}>GROUP</span>}
-                  {quest.type === 'sim' && <span style={{ fontSize: '0.5625rem', padding: '2px 6px', borderRadius: 9999, background: `${world.color}22`, color: world.color, fontWeight: 600 }}>GAME</span>}
+                
+                <div onClick={() => canPlay && (quest.type === 'sim' ? navigate(getGameRoute()) : navigate(`/quest/${worldId}/${quest.id}`))}
+                  style={{
+                    width: 70, height: 70, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, cursor: canPlay ? 'pointer' : 'not-allowed',
+                    opacity: quest.status === 'locked' ? 0.5 : 1,
+                    filter: quest.status === 'completed' ? 'sepia(1) hue-rotate(80deg) saturate(2)' : 'none', // Tint green if completed
+                    transition: 'all 0.25s'
+                  }}>
+                  <img src="/coin.png" alt="Quest Node" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.15))' }} />
                 </div>
-                <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>{quest.desc}</p>
-                <p style={{ fontSize: '0.625rem', color: 'var(--accent-orange)', fontWeight: 600, marginTop: 2 }}>+{quest.xp} XP</p>
-              </div>
-            </motion.div>
-          );
-        })}
+
+                <div style={{ flex: 1, textAlign: isOdd ? 'left' : 'right' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 900, color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.3)', marginBottom: 2 }}>{quest.title}</h4>
+                  <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#111', marginBottom: 4 }}>{quest.desc}</p>
+                  <p style={{ fontSize: '0.75rem', color: amber, fontWeight: 900, textShadow: '0 1px 1px rgba(0,0,0,0.2)' }}>+{quest.xp} XP</p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
+
