@@ -8,6 +8,29 @@ const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 /**
+ * Wraps an async fn with exponential backoff for 429 rate-limit errors.
+ * Will retry up to `maxRetries` times before throwing.
+ */
+async function withRetry(fn, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isRateLimit = err.message?.includes('429') || err.message?.includes('Resource has been exhausted') || err.message?.includes('Please retry');
+      if (isRateLimit && attempt < maxRetries) {
+        // Parse retry delay from error if available (Google hints it)
+        const matchSeconds = err.message?.match(/retry in ([\d.]+)s/i);
+        const waitMs = matchSeconds ? parseFloat(matchSeconds[1]) * 1000 : (2 ** attempt) * 5000;
+        console.warn(`[Gemini] Rate limited. Waiting ${Math.round(waitMs / 1000)}s before retry ${attempt + 1}/${maxRetries}...`);
+        await new Promise(r => setTimeout(r, waitMs));
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
+/**
  * Generates personalized, engaging feedback based on the player's minigame results.
  * @param {string} gameType - The type of game ('budget' or 'crypto')
  * @param {object} gameState - The current state/results of the game
@@ -88,16 +111,20 @@ Instructions:
       throw new Error('Unknown game type');
     }
 
-    const result = await model.generateContent(prompt);
+    const result = await withRetry(() => model.generateContent(prompt));
     const response = await result.response;
     return response.text();
 
   } catch (error) {
     if (error.message?.includes('API_KEY_INVALID')) {
-      console.error('GEMINI ERROR: Invalid API Key. Please check your .env file and ensure the key is correct and not revoked.');
+      console.error('GEMINI ERROR: Invalid API Key.');
       return "Whoops! It looks like my API key is invalid or has been revoked. 🔐 Please update the VITE_GEMINI_API_KEY in your .env file!";
     }
-    console.error('GEMINI ERROR:', error.message, error.status, error);
+    if (error.message?.includes('429') || error.message?.includes('Resource has been exhausted') || error.message?.includes('Please retry')) {
+      console.error('GEMINI ERROR: Rate limit persists after retries.');
+      return "Wow! You've got me thinking too hard. 🧠 I tried a few times but Google's rate limit is holding on. Try again in 60 seconds!";
+    }
+    console.error('GEMINI ERROR:', error.message, error.status);
     return "Looks like my AI brain is taking a quick nap! 😴 Try again later!";
   }
 }
@@ -203,7 +230,7 @@ export async function generateWeeklyRecap(weekData) {
 
   try {
     // Use Pro for the weekly recap — quality matters, and it's called infrequently
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const stats = weekData.playerStats || {};
     const friends = weekData.friends || [];
