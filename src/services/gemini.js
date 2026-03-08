@@ -245,26 +245,6 @@ Instructions:
 3. If they got rugged: be a comforting friend, then explain what the real-world lesson means for avoiding this in real life.
 4. End with one concrete takeaway they can apply to real crypto investing. Include emojis!
       `;
-    } else if (gameType === 'portfolio_analysis') {
-      const { holdings, totalValue, startingAmount, totalPnl, cashRemaining, tradeCount } = gameState;
-      prompt = `
-You are a sharp, encouraging stock trading coach in InvestQuest, a gamified finance learning app.
-The player's current paper trading portfolio:
-
-Holdings: ${holdings}
-Total portfolio value: $${totalValue}
-Starting capital: $${Number(startingAmount).toLocaleString()}
-Overall P&L: ${totalPnl}%
-Cash remaining: $${cashRemaining}
-Number of positions: ${tradeCount}
-
-Instructions:
-1. 3-4 sentences max. Be direct and specific — reference their actual holdings and P&L.
-2. If P&L is positive: hype them up AND flag any concentration risk (too much in one stock).
-3. If P&L is negative: be a supportive coach, identify which position is dragging them down, suggest a strategy.
-4. If cash > 50% of portfolio: gently challenge them to put that cash to work.
-5. End with one concrete next move they should consider. Include emojis!
-      `;
     } else {
       throw new Error('Unknown game type');
     }
@@ -467,5 +447,51 @@ Return ONLY valid JSON, no markdown fences:
   } catch (error) {
     console.error('Error generating weekly recap:', error);
     return { error: "Recap generation failed. Try again later." };
+  }
+}
+/**
+ * Generates 4-5 swipeable tip cards for a community course.
+ * Each card has a headline, body, and emoji.
+ * @param {string} courseTitle
+ * @param {string} courseDescription
+ * @param {string} worldId - 'budget' | 'stocks' | 'crypto'
+ * @returns {Promise<Array<{emoji, headline, body}>>}
+ */
+export async function generateCourseTips(courseTitle, courseDescription, worldId) {
+  if (!genAI) return null; // caller should use fallbackTips from community.js
+
+  const worldContext = {
+    budget: 'personal finance, budgeting, saving, debt management',
+    stocks: 'stock market investing, trading, equities',
+    crypto: 'cryptocurrency, blockchain, decentralized finance',
+  }[worldId] || 'personal finance';
+
+  const prompt = `You are a punchy, Gen-Z-friendly finance educator inside InvestQuest.
+Generate exactly 5 tip cards for a peer-submitted course called "${courseTitle}".
+Course description: "${courseDescription}"
+Topic area: ${worldContext}
+
+Rules:
+- Each tip should be a genuine, actionable insight — not fluff
+- Write like a smart friend giving real advice, not a textbook
+- Keep body to 2-3 short sentences max
+- Use a relevant emoji for each card
+- Vary the angle: mix a fact, a warning, a how-to, a mindset tip, and a quick win
+
+Return ONLY valid JSON, no markdown fences:
+[
+  { "emoji": "💡", "headline": "Short punchy headline (max 6 words)", "body": "2-3 sentences of real advice." }
+]`;
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await withRetry(() => model.generateContent(prompt));
+    const raw = result.response.text().replace(/```json|```/g, '').trim();
+    const tips = JSON.parse(raw);
+    if (!Array.isArray(tips) || tips.length === 0) throw new Error('Bad tips format');
+    return tips;
+  } catch (error) {
+    console.error('generateCourseTips error:', error);
+    return null; // caller falls back to static tips
   }
 }
