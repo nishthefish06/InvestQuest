@@ -22,9 +22,9 @@ export default function BottomNav() {
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '6px 16px', borderRadius: 12, textDecoration: 'none', position: 'relative', minWidth: 60 }}>
           {({ isActive }) => (
             <>
-              {isActive && <div style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', width: 20, height: 3, background: 'var(--accent-purple)', borderRadius: '0 0 4px 4px', boxShadow: '0 0 10px rgba(168,85,247,0.5)' }} />}
-              <tab.icon size={22} style={{ color: isActive ? 'var(--accent-purple)' : 'var(--text-muted)', filter: isActive ? 'drop-shadow(0 0 8px rgba(168,85,247,0.5))' : 'none', transition: 'all 0.25s' }} />
-              <span style={{ fontSize: '0.625rem', fontWeight: 500, color: isActive ? 'var(--accent-purple)' : 'var(--text-muted)' }}>{tab.label}</span>
+              {isActive && <div style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', width: 20, height: 3, background: '#5cb874', borderRadius: '0 0 4px 4px', boxShadow: '0 0 10px rgba(92,184,116,0.5)' }} />}
+              <tab.icon size={22} style={{ color: isActive ? '#5cb874' : 'var(--text-muted)', filter: isActive ? 'drop-shadow(0 0 8px rgba(92,184,116,0.5))' : 'none', transition: 'all 0.25s' }} />
+              <span style={{ fontSize: '0.625rem', fontWeight: 500, color: isActive ? '#5cb874' : 'var(--text-muted)' }}>{tab.label}</span>
             </>
           )}
         </NavLink>
