@@ -212,13 +212,13 @@ export default function WorldHub() {
 
                 <div onClick={() => canPlay && (quest.type === 'sim' ? navigate(getGameRoute()) : navigate(`/quest/${worldId}/${quest.id}`))}
                   style={{
-                    width: 70, height: 70, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 100, height: 100, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0, cursor: canPlay ? 'pointer' : 'not-allowed',
                     opacity: quest.status === 'locked' ? 0.5 : 1,
                     filter: quest.status === 'completed' ? 'sepia(1) hue-rotate(80deg) saturate(2)' : 'none', // Tint green if completed
                     transition: 'all 0.25s'
                   }}>
-                  <img src="/flat-coin.png" alt="Quest Node" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.15))' }} />
+                  <img src="/flat-coin.png" alt="Quest Node" style={{ width: '200%', height: '200%', objectFit: 'contain', filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.15))' }} />
                 </div>
 
                 <div style={{ flex: 1, textAlign: isOdd ? 'left' : 'right' }}>
