@@ -5,47 +5,38 @@ import { Sparkles, Loader2, RefreshCw } from 'lucide-react';
 
 export default function GeminiFeedback({ gameType, gameState }) {
   const [feedback, setFeedback] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const lastFetchedRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [retryKey, setRetryKey] = useState(0);
 
-  // Stable key derived from game inputs — only changes when game results actually change
+  // stateKey uniquely identifies this game result
   const stateKey = JSON.stringify({ gameType, gameState });
 
   useEffect(() => {
-    // Skip if we already fetched for this exact game result
-    if (lastFetchedRef.current === stateKey) return;
-    lastFetchedRef.current = stateKey;
-
     let cancelled = false;
     setIsLoading(true);
     setFeedback('');
-    console.log(`[Gemini] Fetching feedback for ${gameType}...`);
+    console.log(`[Gemini] Fetching feedback (attempt ${retryKey + 1})...`);
 
-    generateGameFeedback(gameType, gameState).then(res => {
-      if (!cancelled) setFeedback(res);
-    }).catch(err => {
-      if (!cancelled) setFeedback("Couldn't reach the AI. Try again!");
-    }).finally(() => {
-      if (!cancelled) setIsLoading(false);
-    });
+    generateGameFeedback(gameType, gameState)
+      .then(res => { if (!cancelled) setFeedback(res); })
+      .catch(() => { if (!cancelled) setFeedback("Couldn't reach the AI. Try again!"); })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
 
-    // Cleanup: ignore stale responses if component unmounts
     return () => { cancelled = true; };
+  // retryKey in deps so clicking Try Again forces a new fetch
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stateKey]);
+  }, [stateKey, retryKey]);
 
-  const handleRetry = () => {
-    lastFetchedRef.current = null;
-    setIsLoading(true);
-    setFeedback('');
-    generateGameFeedback(gameType, gameState).then(res => {
-      setFeedback(res);
-    }).catch(() => {
-      setFeedback("Still busy! Wait 60 seconds and try again. ⏳");
-    }).finally(() => setIsLoading(false));
-  };
+  const handleRetry = () => setRetryKey(k => k + 1);
 
-  const isRateLimited = feedback.includes('breather') || feedback.includes('nap') || feedback.includes('60 second') || feedback.includes('busy');
+  const isRateLimited = !isLoading && (
+    feedback.includes('breather') || 
+    feedback.includes('nap') || 
+    feedback.includes('60 second') || 
+    feedback.includes('busy') ||
+    feedback.includes('Try Again') ||
+    feedback.includes('timed out')
+  );
 
   return (
     <motion.div 
@@ -66,38 +57,24 @@ export default function GeminiFeedback({ gameType, gameState }) {
         overflow: 'hidden'
       }}
     >
-      {/* Decorative gradient glow behind the text */}
       <div style={{
-        position: 'absolute',
-        top: -50,
-        left: -50,
-        right: -50,
-        height: 100,
+        position: 'absolute', top: -50, left: -50, right: -50, height: 100,
         background: 'linear-gradient(180deg, rgba(139, 92, 246, 0.15) 0%, transparent 100%)',
-        filter: 'blur(20px)',
-        zIndex: 0,
-        pointerEvents: 'none'
+        filter: 'blur(20px)', zIndex: 0, pointerEvents: 'none'
       }} />
 
       <div style={{ position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <div style={{ 
-            background: 'var(--gradient-primary)', 
-            borderRadius: '50%', 
-            padding: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            background: 'var(--gradient-primary)', borderRadius: '50%', padding: 6,
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
             <Sparkles size={14} color="white" />
           </div>
           <span style={{ 
-            fontFamily: 'var(--font-display)', 
-            fontWeight: 700, 
-            fontSize: '0.875rem',
+            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.875rem',
             background: 'var(--gradient-primary)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
           }}>
             AI Coach
           </span>
@@ -111,35 +88,22 @@ export default function GeminiFeedback({ gameType, gameState }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              style={{ 
-                fontSize: '0.9375rem', 
-                lineHeight: 1.6, 
-                color: 'var(--text-primary)',
-                whiteSpace: 'pre-wrap'
-              }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              style={{ fontSize: '0.9375rem', lineHeight: 1.6, color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}
             >
               {feedback}
             </motion.p>
-            
+
             {isRateLimited && (
               <button 
                 onClick={handleRetry}
                 style={{
                   background: 'rgba(139, 92, 246, 0.2)',
                   border: '1px solid rgba(139, 92, 246, 0.4)',
-                  color: '#a78bfa',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  alignSelf: 'flex-start',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  transition: 'all 0.2s'
+                  color: '#a78bfa', padding: '6px 12px', borderRadius: '8px',
+                  fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                  alignSelf: 'flex-start', display: 'flex', alignItems: 'center',
+                  gap: 6, transition: 'all 0.2s'
                 }}
               >
                 <RefreshCw size={12} /> Try Again
