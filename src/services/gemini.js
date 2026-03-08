@@ -19,7 +19,7 @@ export async function generateGameFeedback(gameType, gameState) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     let prompt = '';
 
@@ -64,25 +64,25 @@ Instructions:
 6. End with one concrete real-world tip they can use TODAY. Include emojis.
       `;
     } else if (gameType === 'crypto') {
-      const { pnlPct, pnlAmount, cashedOut, moves } = gameState;
+      const { pnlPct, pnlAmount, cashedOut, moves, scenarioName, scenarioYear, lesson } = gameState;
 
       const outcomeContext = cashedOut
-        ? `They cashed out with a ${pnlPct}% return (${pnlAmount >= 0 ? '+' : ''}$${pnlAmount.toLocaleString()}) after ${moves} moves.`
-        : `They hit a "rug pull" (a scam coin) and lost their whole portfolio after ${moves} moves.`;
+        ? `They cashed out with a ${pnlPct}% return (${pnlAmount >= 0 ? '+' : ''}$${pnlAmount.toLocaleString()}) after ${moves} safe cells.`
+        : `They hit a rug pull and lost their bet after ${moves} safe cells.`;
 
       prompt = `
 You are a hype-centric, positive, but educational 'Crypto Guru' character in an educational app called InvestQuest.
-The user just finished playing a high-risk 'To The Moon' crypto crash game ('Crypto Caverns').
+The user just played a scenario called "${scenarioName || 'Crypto'}" (${scenarioYear || ''}).
 
-Here is what happened:
-${outcomeContext}
+What happened in the game: ${outcomeContext}
+
+The real-world context for this scenario: ${lesson || ''}
 
 Instructions:
-1. Give them a short, punchy piece of feedback (2-3 sentences max).
-2. Keep the tone extremely fun, hyped-up, and somewhat 'internet culture' aware, but strictly positive and educational. 
-3. If they cashed out in profit, hype them up as a smart investor who knows when to take gains!
-4. If they hit a rug pull, be a comforting friend. Tell them "It happens to the best of us in Web3!" and give a quick tip about risk management or doing their own research (DYOR). 
-5. Include emojis!
+1. 3-4 sentences total. Start with their game outcome, then connect it to the real-world event naturally.
+2. If they cashed out: hype their decision-making AND tie it to what smart investors did in the real event.
+3. If they got rugged: be a comforting friend, then explain what the real-world lesson means for avoiding this in real life.
+4. End with one concrete takeaway they can apply to real crypto investing. Include emojis!
       `;
     } else {
       throw new Error('Unknown game type');
@@ -93,7 +93,7 @@ Instructions:
     return response.text();
 
   } catch (error) {
-    console.error('Error generating AI feedback:', error);
+    console.error('GEMINI ERROR:', error.message, error.status, error);  // change this line
     return "Looks like my AI brain is taking a quick nap! 😴 Try again later!";
   }
 }
@@ -122,7 +122,7 @@ export async function generateSimEvent(playerState) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const recent = (playerState.recentEvents || []).join(', ') || 'none';
 
     const prompt = `
@@ -188,7 +188,7 @@ Exactly 3 choices. The "action" field controls game logic: "savings" = pay from 
 
 /**
  * Generates a personalized weekly performance recap for the social/profile screen.
- * Uses gemini-2.5-pro for higher quality — intended to be called once per week, not per action.
+ * Uses gemini-1.5-pro for higher quality — intended to be called once per week, not per action.
  * @param {object} weekData - { playerName, streakDays, worldsFocused, playerStats, friends }
  * @returns {Promise<{headline, subheadline, highlights, roast, tip, friendRanking, nextWeekChallenge, moodEmoji}>}
  */
@@ -199,7 +199,7 @@ export async function generateWeeklyRecap(weekData) {
 
   try {
     // Use Pro for the weekly recap — quality matters, and it's called infrequently
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
     const stats = weekData.playerStats || {};
     const friends = weekData.friends || [];
